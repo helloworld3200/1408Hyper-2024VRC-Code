@@ -40,6 +40,18 @@
  * You should add more #includes here
  */
 //#include "okapi/api.hpp"
+#include <vector>
+#include <string>
+#include <initializer_list>
+#include <sstream>
+
+// We're using fmt as header-only library to replace std::format
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
+
+// Using declarations
+using std::vector;
+using std::string;
 
 /**
  * If you find doing pros::Motor() to be tedious and you'd prefer just to do

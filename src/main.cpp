@@ -1,4 +1,82 @@
+// includes/usings are all in main.h
 #include "main.h"
+
+// uses ISO/C++20 standard
+// added libraries/includes:
+// fmt (header-only)
+
+// Constants
+vector<std::int8_t> leftDrivePorts = {-1, 2, -3};
+vector<std::int8_t> rightDrivePorts = {-4, 5, -6};
+
+const int delayTimeMs = 20;
+
+Drivetrain drivetrain(leftDrivePorts, rightDrivePorts, pros::E_CONTROLLER_MASTER);
+
+/// @brief Drivetrain class for controlling auton/driver control
+class Drivetrain {
+	private:
+		pros::MotorGroup left_mg;
+		pros::MotorGroup right_mg;
+		pros::Controller master;
+	public:
+		enum OpControlMode {
+			ARCADE = 0
+		};
+
+		Drivetrain::OpControlMode opControlMode;
+
+		/// @brief Creates drivetrain object
+		/// @param leftPorts Ports for the left motor group
+		/// @param rightPorts Ports for the right motor group
+		/// @param controller Controller for driver control
+		/// @param defaultControlMode Default mode for driver control
+		Drivetrain(std::vector<std::int8_t>& leftPorts, std::vector<std::int8_t>& rightPorts, 
+		  pros::controller_id_e_t controller, Drivetrain::OpControlMode defaultControlMode = Drivetrain::OpControlMode::ARCADE)
+		  : left_mg(leftPorts), right_mg(rightPorts),  master(controller), opControlMode(defaultControlMode) {
+
+			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
+			 vectorToString(leftPorts), vectorToString(rightPorts));
+			pros::lcd::print(0, consoleMsg.c_str());
+		};
+
+		/// @brief Runs the default drive mode specified in opControlMode 
+		/// (recommended to be used instead of directly calling the control functions)
+		void opControl() {
+			switch (opControlMode) {
+				case Drivetrain::OpControlMode::ARCADE:
+					arcadeControl();
+					break;
+				default:
+					arcadeControl();
+					break;
+			}
+		}
+
+		void arcadeControl() {
+			int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+			int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
+			left_mg.move(dir - turn);                      // Sets left motor voltage
+			right_mg.move(dir + turn);                     // Sets right motor voltage
+		}
+};
+
+// Convert vector of ints to string. For displaying on the LCD/debugging
+template <typename T>
+string vectorToString(vector<T>& vec, string delimiter = ", ") {
+	std::ostringstream oss;
+
+	oss << "{";
+	for (int i = 0; i < vec.size(); i++) {
+		oss << vec[i];
+		if (i < vec.size() - 1) {
+			oss << delimiter;
+		}
+	}
+	oss << "}";
+
+	return oss.str();
+}
 
 /**
  * A callback function for LLEMU's center button.
@@ -73,22 +151,18 @@ void autonomous() {}
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::MotorGroup left_mg({1, -2, 3});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
-	pros::MotorGroup right_mg({-4, 5, -6});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
 
+void opcontrol() {
 
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
 
-		// Arcade control scheme
-		int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
-		int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
-		left_mg.move(dir - turn);                      // Sets left motor voltage
-		right_mg.move(dir + turn);                     // Sets right motor voltage
-		pros::delay(20);                               // Run for 20 ms then update
+
+		// Drivetrain control
+		drivetrain.opControl();
+
+		pros::delay(delayTimeMs);                               // Run for 20 ms then update
 	}
 }
