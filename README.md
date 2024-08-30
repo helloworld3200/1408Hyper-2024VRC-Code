@@ -2,6 +2,8 @@
 
 <center><h1> ⚡<em><strong>1408H</em></strong>yper @ VRC 2024-25</center></h1>
 
+[![Github Actions Makefile CI](https://github.com/helloworld3200/1408Hyper-2024VRC-Code/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/helloworld3200/1408Hyper-2024VRC-Code/actions/workflows/c-cpp.yml)
+
 > 1408H's source code for the 2024-25 "High Stakes" season of VRC.
 
 ### Sponsored by Teehee Dental Works
