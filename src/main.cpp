@@ -11,7 +11,7 @@ vector<std::int8_t> rightDrivePorts = {-4, 5, -6};
 
 const int delayTimeMs = 20;
 
-Drivetrain drivetrain(leftDrivePorts, rightDrivePorts, pros::E_CONTROLLER_MASTER);
+Drivetrain drivetrain(leftDrivePorts, rightDrivePorts);
 
 /// @brief Drivetrain class for controlling auton/driver control
 class Drivetrain {
@@ -20,21 +20,30 @@ class Drivetrain {
 		pros::MotorGroup right_mg;
 		pros::Controller master;
 	public:
+		/// @brief Enum for different driver control modes
 		enum OpControlMode {
 			ARCADE = 0
 		};
 
 		Drivetrain::OpControlMode opControlMode;
-		int speed;
+		int autonSpeed;
+		int opControlSpeed;
 
 		/// @brief Creates drivetrain object
 		/// @param leftPorts Ports for the left motor group
 		/// @param rightPorts Ports for the right motor group
-		/// @param controller Controller for driver control
-		/// @param defaultControlMode Default mode for driver control
-		Drivetrain(std::vector<std::int8_t>& leftPorts, std::vector<std::int8_t>& rightPorts, 
-		  pros::controller_id_e_t controller, Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE, int speed = 1.0)
-		  : left_mg(leftPorts), right_mg(rightPorts),  master(controller), opControlMode(opControlMode), speed(speed) {
+		/// @param master Controller for driver control
+		/// @param opControlMode Default mode for driver control
+		/// @param opControlSpeed Opcontrol speed multiplier (opcontrol only)
+		/// @param autonSpeed Max speed for the auton (auton only)
+		Drivetrain(
+		  std::vector<std::int8_t>& leftPorts, 
+		  std::vector<std::int8_t>& rightPorts, 
+		  pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER, 
+		  Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE,
+		  int opControlSpeed = 1, 
+		  int autonSpeed = 100
+		  ) : left_mg(leftPorts), right_mg(rightPorts), master(master), opControlMode(opControlMode), autonSpeed(autonSpeed), opControlSpeed(opControlSpeed) {
 
 			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
 			 vectorToString(leftPorts), vectorToString(rightPorts));
@@ -76,8 +85,8 @@ class Drivetrain {
 			int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 			int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
 			
-			int left_voltage = speed * (dir - turn);                      // Sets left motor voltage
-			int right_voltage = speed * (dir + turn);                     // Sets right motor voltage
+			int left_voltage = opControlSpeed * (dir - turn);                      // Sets left motor voltage
+			int right_voltage = opControlSpeed * (dir + turn);                     // Sets right motor voltage
 
 			left_mg.move(left_voltage);
 			right_mg.move(right_voltage);
