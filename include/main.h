@@ -36,9 +36,7 @@
 
 #include "api.h"
 
-/**
- * You should add more #includes here
- */
+// Includes
 //#include "okapi/api.hpp"
 #include <vector>
 #include <string>
