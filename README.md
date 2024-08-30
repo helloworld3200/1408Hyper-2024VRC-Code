@@ -7,6 +7,6 @@
 ### Sponsored by Teehee Dental Works
 
 ## Included Libraries
-- [**fmt**](https://fmt.dev/11.0/) for text formatting. Replacement of C++20's std::format as  PROS currently doesn't support it.
+- [**fmt**](https://fmt.dev/11.0/) for text formatting. Replacement of C++20's `std::format` as  PROS currently doesn't support it.
 
-#### Main file at src/main.cpp
+#### Main file at `src/main.cpp`
