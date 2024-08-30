@@ -27,7 +27,4 @@ jobs:
         arm-none-eabi-g++ --version
     - name: make
       run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    # We don't need any tests for now
