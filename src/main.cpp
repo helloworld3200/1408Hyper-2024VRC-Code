@@ -41,6 +41,23 @@ class Drivetrain {
 			pros::lcd::print(0, consoleMsg.c_str());
 		};
 
+		// Getters for motor groups and controller
+
+		/// @brief Gets the left motor group
+		pros::MotorGroup& getLeftMotorGroup() {
+			return left_mg;
+		}
+
+		/// @brief Gets the right motor group
+		pros::MotorGroup& getRightMotorGroup() {
+			return right_mg;
+		}
+
+		/// @brief Gets the controller
+		pros::Controller& getController() {
+			return master;
+		}
+
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
 		void opControl() {
