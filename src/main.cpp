@@ -54,6 +54,7 @@ class Drivetrain {
 			}
 		}
 
+		/// @brief Arcade control for drive control (recommended to use opControl instead)
 		void arcadeControl() {
 			int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 			int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
@@ -66,7 +67,9 @@ class Drivetrain {
 		}
 };
 
-// Convert vector of ints to string. For displaying on the LCD/debugging
+/// @brief Convert vector of ints to string. For displaying on the LCD/debugging
+/// @param vec Vector to convert
+/// @param delimiter Delimiter to separate elements
 template <typename T>
 string vectorToString(vector<T>& vec, string delimiter = ", ") {
 	std::ostringstream oss;
@@ -162,12 +165,12 @@ void opcontrol() {
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
+		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0); // Prints status of the emulated screen LCDs
 
 
 		// Drivetrain control
 		drivetrain.opControl();
 
-		pros::delay(delayTimeMs);                               // Run for 20 ms then update
+		pros::delay(delayTimeMs); // Run for 20 ms then update
 	}
 }
