@@ -25,6 +25,7 @@ class Drivetrain {
 		};
 
 		Drivetrain::OpControlMode opControlMode;
+		int speed;
 
 		/// @brief Creates drivetrain object
 		/// @param leftPorts Ports for the left motor group
@@ -32,8 +33,8 @@ class Drivetrain {
 		/// @param controller Controller for driver control
 		/// @param defaultControlMode Default mode for driver control
 		Drivetrain(std::vector<std::int8_t>& leftPorts, std::vector<std::int8_t>& rightPorts, 
-		  pros::controller_id_e_t controller, Drivetrain::OpControlMode defaultControlMode = Drivetrain::OpControlMode::ARCADE)
-		  : left_mg(leftPorts), right_mg(rightPorts),  master(controller), opControlMode(defaultControlMode) {
+		  pros::controller_id_e_t controller, Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE, int speed = 1.0)
+		  : left_mg(leftPorts), right_mg(rightPorts),  master(controller), opControlMode(opControlMode), speed(speed) {
 
 			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
 			 vectorToString(leftPorts), vectorToString(rightPorts));
@@ -56,8 +57,12 @@ class Drivetrain {
 		void arcadeControl() {
 			int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 			int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
-			left_mg.move(dir - turn);                      // Sets left motor voltage
-			right_mg.move(dir + turn);                     // Sets right motor voltage
+			
+			int left_voltage = speed * (dir - turn);                      // Sets left motor voltage
+			int right_voltage = speed * (dir + turn);                     // Sets right motor voltage
+
+			left_mg.move(left_voltage);
+			right_mg.move(right_voltage);
 		}
 };
 
