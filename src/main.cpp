@@ -5,13 +5,24 @@
 // added libraries/includes:
 // fmt (header-only)
 
-// Constants
-vector<std::int8_t> leftDrivePorts = {-1, 2, -3};
-vector<std::int8_t> rightDrivePorts = {-4, 5, -6};
+/// @brief Convert vector of ints to string. For displaying on the LCD/debugging
+/// @param vec Vector to convert
+/// @param delimiter Delimiter to separate elements
+template <typename T>
+string vectorToString(vector<T>& vec, string delimiter = ", ") {
+	std::ostringstream oss;
 
-const int delayTimeMs = 20;
+	oss << "{";
+	for (int i = 0; i < vec.size(); i++) {
+		oss << vec[i];
+		if (i < vec.size() - 1) {
+			oss << delimiter;
+		}
+	}
+	oss << "}";
 
-Drivetrain drivetrain(leftDrivePorts, rightDrivePorts);
+	return oss.str();
+}
 
 /// @brief Drivetrain class for controlling auton/driver control
 class Drivetrain {
@@ -93,24 +104,14 @@ class Drivetrain {
 		}
 };
 
-/// @brief Convert vector of ints to string. For displaying on the LCD/debugging
-/// @param vec Vector to convert
-/// @param delimiter Delimiter to separate elements
-template <typename T>
-string vectorToString(vector<T>& vec, string delimiter = ", ") {
-	std::ostringstream oss;
+// Constants
+vector<std::int8_t> leftDrivePorts = {-1, 2, -3};
+vector<std::int8_t> rightDrivePorts = {-4, 5, -6};
 
-	oss << "{";
-	for (int i = 0; i < vec.size(); i++) {
-		oss << vec[i];
-		if (i < vec.size() - 1) {
-			oss << delimiter;
-		}
-	}
-	oss << "}";
+const int delayTimeMs = 20;
 
-	return oss.str();
-}
+Drivetrain drivetrain(leftDrivePorts, rightDrivePorts);
+
 
 /**
  * A callback function for LLEMU's center button.
