@@ -28,8 +28,9 @@ class AbstractDrivetrain {
 	public:
 
 	private:
+	
+};
 
-}
 
 /// @brief Drivetrain class for controlling auton/driver control
 class Drivetrain {
