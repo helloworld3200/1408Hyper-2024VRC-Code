@@ -24,20 +24,53 @@ string vectorToString(vector<T>& vec, string delimiter = ", ") {
 	return oss.str();
 }
 
+/// @brief Abstract drivetrain class for if you want a custom drivetrain class
 class AbstractDrivetrain {
-	public:
-
 	private:
-	
-};
-
-
-/// @brief Drivetrain class for controlling auton/driver control
-class Drivetrain {
-	private:
+	protected:
 		pros::MotorGroup left_mg;
 		pros::MotorGroup right_mg;
 		pros::Controller master;
+	public:
+		/// @brief Creates abstract drivetrain object
+		/// @param leftPorts Ports for the left motor group
+		/// @param rightPorts Ports for the right motor group
+		/// @param master Controller for driver control
+		AbstractDrivetrain(
+		  std::vector<std::int8_t>& leftPorts, 
+		  std::vector<std::int8_t>& rightPorts, 
+		  pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER 
+		) : left_mg(leftPorts), right_mg(rightPorts), master(master) {
+			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
+			 vectorToString(leftPorts), vectorToString(rightPorts));
+			pros::lcd::print(0, consoleMsg.c_str());
+		};
+
+		virtual ~AbstractDrivetrain() = default;
+
+		// Getters for motor groups and controller
+
+		/// @brief Gets the left motor group
+		pros::MotorGroup& getLeftMotorGroup() {
+			return left_mg;
+		}
+
+		/// @brief Gets the right motor group
+		pros::MotorGroup& getRightMotorGroup() {
+			return right_mg;
+		}
+
+		/// @brief Gets the controller
+		pros::Controller& getController() {
+			return master;
+		}
+
+		virtual void opControl() = 0;
+};
+
+/// @brief Drivetrain class for controlling auton/driver control
+class Drivetrain : public AbstractDrivetrain {
+	private:
 	public:
 		/// @brief Enum for different driver control modes
 		enum OpControlMode {
@@ -62,29 +95,7 @@ class Drivetrain {
 		  Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE,
 		  int opControlSpeed = 1, 
 		  int autonSpeed = 100
-		  ) : left_mg(leftPorts), right_mg(rightPorts), master(master), opControlMode(opControlMode), autonSpeed(autonSpeed), opControlSpeed(opControlSpeed) {
-
-			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
-			 vectorToString(leftPorts), vectorToString(rightPorts));
-			pros::lcd::print(0, consoleMsg.c_str());
-		};
-
-		// Getters for motor groups and controller
-
-		/// @brief Gets the left motor group
-		pros::MotorGroup& getLeftMotorGroup() {
-			return left_mg;
-		}
-
-		/// @brief Gets the right motor group
-		pros::MotorGroup& getRightMotorGroup() {
-			return right_mg;
-		}
-
-		/// @brief Gets the controller
-		pros::Controller& getController() {
-			return master;
-		}
+		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), autonSpeed(autonSpeed), opControlSpeed(opControlSpeed) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
