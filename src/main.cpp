@@ -24,6 +24,14 @@ string vectorToString(vector<T>& vec, string delimiter = ", ") {
 	return oss.str();
 }
 
+class AbstractDrivetrain {
+	public:
+
+	private:
+	
+}
+
+
 /// @brief Drivetrain class for controlling auton/driver control
 class Drivetrain {
 	private:
