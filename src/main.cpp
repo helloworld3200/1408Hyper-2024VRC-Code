@@ -100,7 +100,7 @@ class Drivetrain : public AbstractDrivetrain {
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
-		void opControl() {
+		void opControl() override {
 			switch (opControlMode) {
 				case Drivetrain::OpControlMode::ARCADE:
 					arcadeControl();
@@ -124,7 +124,7 @@ class Drivetrain : public AbstractDrivetrain {
 		}
 
 		/// @brief Auton function for the drivetrain
-		void auton() {
+		void auton() override {
 			
 		}
 };
