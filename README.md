@@ -6,9 +6,16 @@
 
 > 1408H's source code for the 2024-25 "High Stakes" season of VRC.
 
-### Sponsored by Teehee Dental Works
+### Sponsored by [Teehee Dental Works](https://teehee.sg/)
+
+**1408Hyper-2024VRC-Code** was designed with portability in mind - we understand that situations can quickly change at any competition.  
+
+Our code is hot-swappable, making heavy use of **abstract classes** and **templates**
+to allow for us to rapidly change and test different pieces of code when time is of the essence.
 
 ## Included Libraries
+- Created with [`PROS` API](https://github.com/purduesigbots/pros)
+as this has better documentation
 - [**fmt**](https://fmt.dev/11.0/) for text formatting. Polyfill of C++20's `std::format` as  PROS currently doesn't support it.
 
-#### Main file at `src/main.cpp`
+#### Main file at `src/main.cpp`. To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
