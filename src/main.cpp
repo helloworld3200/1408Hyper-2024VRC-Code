@@ -66,6 +66,7 @@ class AbstractDrivetrain {
 		}
 
 		virtual void opControl() = 0;
+		virtual void auton() = 0;
 };
 
 /// @brief Drivetrain class for controlling auton/driver control
@@ -121,6 +122,11 @@ class Drivetrain : public AbstractDrivetrain {
 			left_mg.move(left_voltage);
 			right_mg.move(right_voltage);
 		}
+
+		/// @brief Auton function for the drivetrain
+		void auton() {
+			
+		}
 };
 
 // Constants
@@ -128,6 +134,9 @@ vector<std::int8_t> leftDrivePorts = {-1, 2, -3};
 vector<std::int8_t> rightDrivePorts = {-4, 5, -6};
 
 const int delayTimeMs = 20;
+
+// Turn this on if we are testing auton
+const bool autonTest = false;
 
 Drivetrain drivetrain(leftDrivePorts, rightDrivePorts);
 
@@ -190,7 +199,9 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+	drivetrain.auton();
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -208,6 +219,11 @@ void autonomous() {}
 
 void opcontrol() {
 
+	if (autonTest) {
+		autonomous();
+	}
+	
+	// Drivetrain control loop
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
