@@ -15,7 +15,7 @@ to allow for us to rapidly change and test different pieces of code when time is
 
 ## Included Libraries
 - Created with [`PROS` API](https://github.com/purduesigbots/pros)
-as this has better documentation
+as this has better documentation.
 - [**fmt**](https://fmt.dev/11.0/) for text formatting. Polyfill of C++20's `std::format` as  PROS currently doesn't support it.
 
 #### Main file at `src/main.cpp`. To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
