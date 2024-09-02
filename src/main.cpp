@@ -82,6 +82,23 @@ class AbstractAuton {
 		virtual void go() = 0;
 };
 
+/// @brief Main auton class
+class Auton : AbstractAuton {
+	private:
+	public:
+		int speed;
+
+		/// @brief Creates auton object
+		/// @param drivetrain Drivetrain object to control
+		/// @param speed Speed for the auton
+		Auton(AbstractDrivetrain* drivetrain, int speed) : 
+			AbstractAuton(drivetrain), speed(speed) {};
+
+		void go() override {
+			// TODO: Implement auton
+		};
+};
+
 /// @brief Drivetrain class for controlling auton/driver control
 class Drivetrain : public AbstractDrivetrain {
 	private:
@@ -92,8 +109,9 @@ class Drivetrain : public AbstractDrivetrain {
 		};
 
 		Drivetrain::OpControlMode opControlMode;
-		int autonSpeed;
 		int opControlSpeed;
+
+		Auton autonController;
 
 		/// @brief Creates drivetrain object
 		/// @param leftPorts Ports for the left motor group
@@ -109,7 +127,8 @@ class Drivetrain : public AbstractDrivetrain {
 		  Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE,
 		  int opControlSpeed = 1, 
 		  int autonSpeed = 100
-		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), autonSpeed(autonSpeed), opControlSpeed(opControlSpeed) {};
+		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), 
+		  opControlSpeed(opControlSpeed), autonController(this, autonSpeed) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
