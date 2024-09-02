@@ -24,19 +24,6 @@ string vectorToString(vector<T>& vec, string delimiter = ", ") {
 	return oss.str();
 }
 
-/// @brief Abstract class for autonomous routines
-class AbstractAuton {
-	private:
-	protected:
-		AbstractDrivetrain* drivetrain;
-	public:
-		/// @brief Creates abstract auton object
-		/// @param drivetrain Drivetrain object to control
-		AbstractAuton(AbstractDrivetrain* drivetrain) : drivetrain(drivetrain) {};
-		virtual ~AbstractAuton() = default;
-		virtual void go() = 0;
-};
-
 /// @brief Abstract drivetrain class for if you want a custom drivetrain class
 class AbstractDrivetrain {
 	private:
@@ -80,6 +67,19 @@ class AbstractDrivetrain {
 
 		virtual void opControl() = 0;
 		virtual void auton() = 0;
+};
+
+/// @brief Abstract class for autonomous routines
+class AbstractAuton {
+	private:
+	protected:
+		AbstractDrivetrain* drivetrain;
+	public:
+		/// @brief Creates abstract auton object
+		/// @param drivetrain Drivetrain object to control
+		AbstractAuton(AbstractDrivetrain* drivetrain) : drivetrain(drivetrain) {};
+		virtual ~AbstractAuton() = default;
+		virtual void go() = 0;
 };
 
 /// @brief Drivetrain class for controlling auton/driver control
