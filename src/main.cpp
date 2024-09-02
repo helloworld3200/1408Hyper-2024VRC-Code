@@ -24,6 +24,19 @@ string vectorToString(vector<T>& vec, string delimiter = ", ") {
 	return oss.str();
 }
 
+/// @brief Abstract class for autonomous routines
+class AbstractAuton {
+	private:
+	protected:
+		AbstractDrivetrain* drivetrain;
+	public:
+		/// @brief Creates abstract auton object
+		/// @param drivetrain Drivetrain object to control
+		AbstractAuton(AbstractDrivetrain* drivetrain) : drivetrain(drivetrain) {};
+		virtual ~AbstractAuton() = default;
+		virtual void go() = 0;
+};
+
 /// @brief Abstract drivetrain class for if you want a custom drivetrain class
 class AbstractDrivetrain {
 	private:
@@ -138,8 +151,11 @@ const int delayTimeMs = 20;
 // Turn this on if we are testing auton
 const bool autonTest = false;
 
-Drivetrain drivetrain(leftDrivePorts, rightDrivePorts);
+// Main drivetrain object
+Drivetrain defaultDrivetrain(leftDrivePorts, rightDrivePorts);
 
+// If we are testing a different drivetrain change this
+AbstractDrivetrain& currentDrivetrain = defaultDrivetrain;
 
 /**
  * A callback function for LLEMU's center button.
@@ -200,7 +216,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	drivetrain.auton();
+	currentDrivetrain.auton();
 }
 
 /**
@@ -231,7 +247,7 @@ void opcontrol() {
 
 
 		// Drivetrain control
-		drivetrain.opControl();
+		currentDrivetrain.opControl();
 
 		pros::delay(delayTimeMs); // Run for 20 ms then update
 	}
