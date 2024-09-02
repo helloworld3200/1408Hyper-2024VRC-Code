@@ -157,7 +157,7 @@ class Drivetrain : public AbstractDrivetrain {
 
 		/// @brief Auton function for the drivetrain
 		void auton() override {
-			
+			autonController.go();
 		}
 };
 
