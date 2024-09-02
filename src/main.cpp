@@ -69,6 +69,36 @@ class AbstractDrivetrain {
 		virtual void auton() = 0;
 };
 
+/// @brief Abstract class for autonomous routines
+class AbstractAuton {
+	private:
+	protected:
+		AbstractDrivetrain* drivetrain;
+	public:
+		/// @brief Creates abstract auton object
+		/// @param drivetrain Drivetrain object to control
+		AbstractAuton(AbstractDrivetrain* drivetrain) : drivetrain(drivetrain) {};
+		virtual ~AbstractAuton() = default;
+		virtual void go() = 0;
+};
+
+/// @brief Main auton class
+class Auton : AbstractAuton {
+	private:
+	public:
+		int speed;
+
+		/// @brief Creates auton object
+		/// @param drivetrain Drivetrain object to control
+		/// @param speed Speed for the auton
+		Auton(AbstractDrivetrain* drivetrain, int speed) : 
+			AbstractAuton(drivetrain), speed(speed) {};
+
+		void go() override {
+			// TODO: Implement auton
+		};
+};
+
 /// @brief Drivetrain class for controlling auton/driver control
 class Drivetrain : public AbstractDrivetrain {
 	private:
@@ -79,8 +109,9 @@ class Drivetrain : public AbstractDrivetrain {
 		};
 
 		Drivetrain::OpControlMode opControlMode;
-		int autonSpeed;
 		int opControlSpeed;
+
+		Auton autonController;
 
 		/// @brief Creates drivetrain object
 		/// @param leftPorts Ports for the left motor group
@@ -96,11 +127,12 @@ class Drivetrain : public AbstractDrivetrain {
 		  Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE,
 		  int opControlSpeed = 1, 
 		  int autonSpeed = 100
-		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), autonSpeed(autonSpeed), opControlSpeed(opControlSpeed) {};
+		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), 
+		  opControlSpeed(opControlSpeed), autonController(this, autonSpeed) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
-		void opControl() {
+		void opControl() override {
 			switch (opControlMode) {
 				case Drivetrain::OpControlMode::ARCADE:
 					arcadeControl();
@@ -124,8 +156,8 @@ class Drivetrain : public AbstractDrivetrain {
 		}
 
 		/// @brief Auton function for the drivetrain
-		void auton() {
-			
+		void auton() override {
+			autonController.go();
 		}
 };
 
@@ -138,8 +170,11 @@ const int delayTimeMs = 20;
 // Turn this on if we are testing auton
 const bool autonTest = false;
 
-Drivetrain drivetrain(leftDrivePorts, rightDrivePorts);
+// Main drivetrain object
+Drivetrain defaultDrivetrain(leftDrivePorts, rightDrivePorts);
 
+// If we are testing a different drivetrain change this
+AbstractDrivetrain& currentDrivetrain = defaultDrivetrain;
 
 /**
  * A callback function for LLEMU's center button.
@@ -200,7 +235,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	drivetrain.auton();
+	currentDrivetrain.auton();
 }
 
 /**
@@ -231,7 +266,7 @@ void opcontrol() {
 
 
 		// Drivetrain control
-		drivetrain.opControl();
+		currentDrivetrain.opControl();
 
 		pros::delay(delayTimeMs); // Run for 20 ms then update
 	}
