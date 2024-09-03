@@ -42,6 +42,8 @@
 #include <string>
 #include <initializer_list>
 #include <sstream>
+// Perfect forwarding
+#include <utility>
 
 // We're using fmt as header-only library to replace std::format
 #define FMT_HEADER_ONLY

@@ -89,10 +89,11 @@ class Auton : AbstractAuton {
 		int speed;
 
 		/// @brief Creates auton object
-		/// @param drivetrain Drivetrain object to control
 		/// @param speed Speed for the auton
-		Auton(AbstractDrivetrain* drivetrain, int speed) : 
-			AbstractAuton(drivetrain), speed(speed) {};
+		/// @param args Args for AbstractAuton class
+		template <typename... Args>
+		Auton(int speed, Args&&... args) : 
+			AbstractAuton(std::forward<Args>(args)...), speed(speed) {};
 
 		void go() override {
 			// TODO: Implement auton
@@ -128,7 +129,7 @@ class Drivetrain : public AbstractDrivetrain {
 		  int opControlSpeed = 1, 
 		  int autonSpeed = 100
 		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), 
-		  opControlSpeed(opControlSpeed), autonController(this, autonSpeed) {};
+		  opControlSpeed(opControlSpeed), autonController(autonSpeed, this) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
