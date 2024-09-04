@@ -5,6 +5,16 @@
 // added libraries/includes:
 // fmt (header-only)
 
+// Variables (u can change these!!)
+#define DELAY_TIME_MS 20
+// turn on for auton to be run at the start of opcontrol
+#define AUTON_TEST false
+
+#define LEFT_DRIVE_PORTS {-1, 2, -3}
+#define RIGHT_DRIVE_PORTS {-4, 5, -6}
+
+#define INIT_DRIVETRAIN initDefaultDrivetrain
+
 /// @brief Convert vector of ints to string. For displaying on the LCD/debugging
 /// @param vec Vector to convert
 /// @param delimiter Delimiter to separate elements
@@ -32,17 +42,23 @@ class AbstractDrivetrain {
 		pros::MotorGroup right_mg;
 		pros::Controller master;
 	public:
+		/// @brief Args for abstract drivetrain object
+		/// @param leftPorts Vector of ports for left side of drivetrain
+		/// @param rightPorts Vector of ports for right side of drivetrain
+		/// @param master Controller for drivetrain
+		struct AbstractDrivetrainArgs {
+			std::vector<std::int8_t> leftPorts;
+			std::vector<std::int8_t> rightPorts;
+			pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER;
+		};
+
 		/// @brief Creates abstract drivetrain object
-		/// @param leftPorts Ports for the left motor group
-		/// @param rightPorts Ports for the right motor group
-		/// @param master Controller for driver control
+		/// @param args Args for abstract drivetrain object (check args struct for more info)
 		AbstractDrivetrain(
-		  std::vector<std::int8_t>& leftPorts, 
-		  std::vector<std::int8_t>& rightPorts, 
-		  pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER 
-		) : left_mg(leftPorts), right_mg(rightPorts), master(master) {
+		  AbstractDrivetrainArgs args
+		) : left_mg(args.leftPorts), right_mg(args.rightPorts), master(args.master) {
 			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
-			 vectorToString(leftPorts), vectorToString(rightPorts));
+			 vectorToString(args.leftPorts), vectorToString(args.rightPorts));
 			pros::lcd::print(0, consoleMsg.c_str());
 		};
 
@@ -75,9 +91,15 @@ class AbstractAuton {
 	protected:
 		AbstractDrivetrain* drivetrain;
 	public:
+		/// @brief Args for abstract auton object
+		/// @param drivetrain Drivetrain object for auton control
+		struct AbstractAutonArgs {
+			AbstractDrivetrain* drivetrain;
+		};
+
 		/// @brief Creates abstract auton object
-		/// @param drivetrain Drivetrain object to control
-		AbstractAuton(AbstractDrivetrain* drivetrain) : drivetrain(drivetrain) {};
+		/// @param args Args for abstract auton object (check args struct for more info)
+		AbstractAuton(AbstractAutonArgs args) : drivetrain(args.drivetrain) {};
 		virtual ~AbstractAuton() = default;
 		virtual void go() = 0;
 };
@@ -86,13 +108,20 @@ class AbstractAuton {
 class Auton : AbstractAuton {
 	private:
 	public:
+		/// @brief Args for auton object
+		/// @param abstractAutonArgs Args for abstract auton object
+		/// @param speed Speed for auton control
+		struct AutonArgs {
+			AbstractAuton::AbstractAutonArgs abstractAutonArgs;
+			int speed = 100;
+		};
+
 		int speed;
 
 		/// @brief Creates auton object
-		/// @param drivetrain Drivetrain object to control
-		/// @param speed Speed for the auton
-		Auton(AbstractDrivetrain* drivetrain, int speed) : 
-			AbstractAuton(drivetrain), speed(speed) {};
+		/// @param args Args for auton object (check args struct for more info)
+		Auton(AutonArgs args) : 
+			AbstractAuton(args.abstractAutonArgs), speed(args.speed) {};
 
 		void go() override {
 			// TODO: Implement auton
@@ -108,27 +137,29 @@ class Drivetrain : public AbstractDrivetrain {
 			ARCADE = 0
 		};
 
+		/// @brief Args for drivetrain object
+		/// @param abstractDrivetrainArgs Args for abstract drivetrain object
+		/// @param opControlMode Mode for driver control
+		/// @param opControlSpeed Speed for driver control
+		/// @param autonSpeed Speed for auton control
+		struct DrivetrainArgs {
+			AbstractDrivetrain::AbstractDrivetrainArgs abstractDrivetrainArgs;
+			OpControlMode opControlMode = OpControlMode::ARCADE;
+			int opControlSpeed = 1;
+			int autonSpeed = 100;
+		};
+
 		Drivetrain::OpControlMode opControlMode;
 		int opControlSpeed;
 
 		Auton autonController;
 
 		/// @brief Creates drivetrain object
-		/// @param leftPorts Ports for the left motor group
-		/// @param rightPorts Ports for the right motor group
-		/// @param master Controller for driver control
-		/// @param opControlMode Default mode for driver control
-		/// @param opControlSpeed Opcontrol speed multiplier (opcontrol only)
-		/// @param autonSpeed Max speed for the auton (auton only)
+		/// @param args Args for drivetrain object (check args struct for more info)
 		Drivetrain(
-		  std::vector<std::int8_t>& leftPorts, 
-		  std::vector<std::int8_t>& rightPorts, 
-		  pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER, 
-		  Drivetrain::OpControlMode opControlMode = Drivetrain::OpControlMode::ARCADE,
-		  int opControlSpeed = 1, 
-		  int autonSpeed = 100
-		  ) : AbstractDrivetrain(leftPorts, rightPorts, master), opControlMode(opControlMode), 
-		  opControlSpeed(opControlSpeed), autonController(this, autonSpeed) {};
+			DrivetrainArgs args
+		) : AbstractDrivetrain(args.abstractDrivetrainArgs), opControlMode(args.opControlMode), 
+		  opControlSpeed(args.opControlSpeed), autonController({this}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
@@ -161,20 +192,8 @@ class Drivetrain : public AbstractDrivetrain {
 		}
 };
 
-// Constants
-vector<std::int8_t> leftDrivePorts = {-1, 2, -3};
-vector<std::int8_t> rightDrivePorts = {-4, 5, -6};
-
-const int delayTimeMs = 20;
-
-// Turn this on if we are testing auton
-const bool autonTest = false;
-
-// Main drivetrain object
-Drivetrain defaultDrivetrain(leftDrivePorts, rightDrivePorts);
-
-// If we are testing a different drivetrain change this
-AbstractDrivetrain& currentDrivetrain = defaultDrivetrain;
+// DONT say just "drivetrain" because certain class properties have the same name
+AbstractDrivetrain* currentDrivetrain;
 
 /**
  * A callback function for LLEMU's center button.
@@ -182,6 +201,14 @@ AbstractDrivetrain& currentDrivetrain = defaultDrivetrain;
  * When this callback is fired, it will toggle line 2 of the LCD text between
  * "I was pressed!" and nothing.
  */
+
+void initDefaultDrivetrain() {
+	static Drivetrain defaultDrivetrain({{
+		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
+	}});
+	currentDrivetrain = &defaultDrivetrain;
+}
+
 void on_center_button() {
 	static bool pressed = false;
 	pressed = !pressed;
@@ -200,7 +227,8 @@ void on_center_button() {
  */
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+
+	INIT_DRIVETRAIN();
 
 	pros::lcd::register_btn1_cb(on_center_button);
 }
@@ -235,7 +263,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	currentDrivetrain.auton();
+	currentDrivetrain->auton();
 }
 
 /**
@@ -254,7 +282,7 @@ void autonomous() {
 
 void opcontrol() {
 
-	if (autonTest) {
+	if (AUTON_TEST) {
 		autonomous();
 	}
 	
@@ -266,8 +294,8 @@ void opcontrol() {
 
 
 		// Drivetrain control
-		currentDrivetrain.opControl();
+		currentDrivetrain->opControl();
 
-		pros::delay(delayTimeMs); // Run for 20 ms then update
+		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
 	}
 }
