@@ -54,9 +54,8 @@ class AbstractDrivetrain {
 
 		/// @brief Creates abstract drivetrain object
 		/// @param args Args for abstract drivetrain object (check args struct for more info)
-		AbstractDrivetrain(
-		  AbstractDrivetrainArgs args
-		) : left_mg(args.leftPorts), right_mg(args.rightPorts), master(args.master) {
+		AbstractDrivetrain(AbstractDrivetrainArgs args) : 
+		  left_mg(args.leftPorts), right_mg(args.rightPorts), master(args.master) {
 			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
 			 vectorToString(args.leftPorts), vectorToString(args.rightPorts));
 			pros::lcd::print(0, consoleMsg.c_str());
@@ -105,7 +104,7 @@ class AbstractAuton {
 };
 
 /// @brief Main auton class
-class Auton : AbstractAuton {
+class Auton : public AbstractAuton {
 	private:
 	public:
 		/// @brief Args for auton object
@@ -156,10 +155,11 @@ class Drivetrain : public AbstractDrivetrain {
 
 		/// @brief Creates drivetrain object
 		/// @param args Args for drivetrain object (check args struct for more info)
-		Drivetrain(
-			DrivetrainArgs args
-		) : AbstractDrivetrain(args.abstractDrivetrainArgs), opControlMode(args.opControlMode), 
-		  opControlSpeed(args.opControlSpeed), autonController({this}) {};
+		Drivetrain(DrivetrainArgs args) : 
+		  AbstractDrivetrain(args.abstractDrivetrainArgs), 
+		  opControlMode(args.opControlMode), 
+		  opControlSpeed(args.opControlSpeed), 
+		  autonController({this}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
