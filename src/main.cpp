@@ -10,6 +10,7 @@
 // turn on for auton to be run at the start of opcontrol
 #define AUTON_TEST false
 
+// Ports for the drivetrain motors
 #define LEFT_DRIVE_PORTS {-1, 2, -3}
 #define RIGHT_DRIVE_PORTS {-4, 5, -6}
 
