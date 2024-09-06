@@ -13,7 +13,7 @@
 #define LEFT_DRIVE_PORTS {-1, 2, -3}
 #define RIGHT_DRIVE_PORTS {-4, 5, -6}
 
-#define INIT_DRIVETRAIN initDefaultDrivetrain
+#define INIT_CHASSIS initDefaultChassis
 
 /// @brief Convert vector of ints to string. For displaying on the LCD/debugging
 /// @param vec Vector to convert
@@ -34,35 +34,35 @@ string vectorToString(vector<T>& vec, string delimiter = ", ") {
 	return oss.str();
 }
 
-/// @brief Abstract drivetrain class for if you want a custom drivetrain class
-class AbstractDrivetrain {
+/// @brief Abstract chassis class for if you want a custom chassis class
+class AbstractChassis {
 	private:
 	protected:
 		pros::MotorGroup left_mg;
 		pros::MotorGroup right_mg;
 		pros::Controller master;
 	public:
-		/// @brief Args for abstract drivetrain object
+		/// @brief Args for abstract chassis object
 		/// @param leftPorts Vector of ports for left side of drivetrain
 		/// @param rightPorts Vector of ports for right side of drivetrain
-		/// @param master Controller for drivetrain
-		struct AbstractDrivetrainArgs {
+		/// @param master Controller for robot
+		struct AbstractChassisArgs {
 			std::vector<std::int8_t> leftPorts;
 			std::vector<std::int8_t> rightPorts;
 			pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER;
 		};
 
-		/// @brief Creates abstract drivetrain object
-		/// @param args Args for abstract drivetrain object (check args struct for more info)
-		AbstractDrivetrain(
-		  AbstractDrivetrainArgs args
-		) : left_mg(args.leftPorts), right_mg(args.rightPorts), master(args.master) {
-			string consoleMsg = fmt::format("Drivetrain created with left ports: {} and right ports: {}",
+		/// @brief Creates abstract chassis object
+		/// @param args Args for abstract chassis object (check args struct for more info)
+		AbstractChassis(AbstractChassisArgs args) : 
+		  left_mg(args.leftPorts), right_mg(args.rightPorts), 
+		  master(args.master) {
+			string consoleMsg = fmt::format("Chassis created with left ports: {} and right ports: {}",
 			 vectorToString(args.leftPorts), vectorToString(args.rightPorts));
 			pros::lcd::print(0, consoleMsg.c_str());
 		};
 
-		virtual ~AbstractDrivetrain() = default;
+		virtual ~AbstractChassis() = default;
 
 		// Getters for motor groups and controller
 
@@ -89,23 +89,23 @@ class AbstractDrivetrain {
 class AbstractAuton {
 	private:
 	protected:
-		AbstractDrivetrain* drivetrain;
+		AbstractChassis* chassis;
 	public:
 		/// @brief Args for abstract auton object
-		/// @param drivetrain Drivetrain object for auton control
+		/// @param chassis Chassis object for auton control
 		struct AbstractAutonArgs {
-			AbstractDrivetrain* drivetrain;
+			AbstractChassis* chassis;
 		};
 
 		/// @brief Creates abstract auton object
 		/// @param args Args for abstract auton object (check args struct for more info)
-		AbstractAuton(AbstractAutonArgs args) : drivetrain(args.drivetrain) {};
+		AbstractAuton(AbstractAutonArgs args) : chassis(args.chassis) {};
 		virtual ~AbstractAuton() = default;
 		virtual void go() = 0;
 };
 
 /// @brief Main auton class
-class Auton : AbstractAuton {
+class Auton : public AbstractAuton {
 	private:
 	public:
 		/// @brief Args for auton object
@@ -128,8 +128,8 @@ class Auton : AbstractAuton {
 		};
 };
 
-/// @brief Drivetrain class for controlling auton/driver control
-class Drivetrain : public AbstractDrivetrain {
+/// @brief Chassis class for controlling auton/driver control
+class Chassis : public AbstractChassis {
 	private:
 	public:
 		/// @brief Enum for different driver control modes
@@ -137,35 +137,36 @@ class Drivetrain : public AbstractDrivetrain {
 			ARCADE = 0
 		};
 
-		/// @brief Args for drivetrain object
-		/// @param abstractDrivetrainArgs Args for abstract drivetrain object
+		/// @brief Args for chassis object
+		/// @param abstractChassisArgs Args for abstract chassis object
 		/// @param opControlMode Mode for driver control
 		/// @param opControlSpeed Speed for driver control
 		/// @param autonSpeed Speed for auton control
-		struct DrivetrainArgs {
-			AbstractDrivetrain::AbstractDrivetrainArgs abstractDrivetrainArgs;
+		struct ChassisArgs {
+			AbstractChassis::AbstractChassisArgs abstractChassisArgs;
 			OpControlMode opControlMode = OpControlMode::ARCADE;
 			int opControlSpeed = 1;
 			int autonSpeed = 100;
 		};
 
-		Drivetrain::OpControlMode opControlMode;
+		Chassis::OpControlMode opControlMode;
 		int opControlSpeed;
 
 		Auton autonController;
 
-		/// @brief Creates drivetrain object
-		/// @param args Args for drivetrain object (check args struct for more info)
-		Drivetrain(
-			DrivetrainArgs args
-		) : AbstractDrivetrain(args.abstractDrivetrainArgs), opControlMode(args.opControlMode), 
-		  opControlSpeed(args.opControlSpeed), autonController({this}) {};
+		/// @brief Creates chassis object
+		/// @param args Args for chassis object (check args struct for more info)
+		Chassis(ChassisArgs args) : 
+		  AbstractChassis(args.abstractChassisArgs), 
+		  opControlMode(args.opControlMode), 
+		  opControlSpeed(args.opControlSpeed), 
+		  autonController({this}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
 		void opControl() override {
 			switch (opControlMode) {
-				case Drivetrain::OpControlMode::ARCADE:
+				case Chassis::OpControlMode::ARCADE:
 					arcadeControl();
 					break;
 				default:
@@ -186,14 +187,14 @@ class Drivetrain : public AbstractDrivetrain {
 			right_mg.move(right_voltage);
 		}
 
-		/// @brief Auton function for the drivetrain
+		/// @brief Auton function for the chassis
 		void auton() override {
 			autonController.go();
 		}
 };
 
-// DONT say just "drivetrain" because certain class properties have the same name
-AbstractDrivetrain* currentDrivetrain;
+// DONT say just "chassis" because certain class properties have the same name
+AbstractChassis* currentChassis;
 
 /**
  * A callback function for LLEMU's center button.
@@ -202,11 +203,11 @@ AbstractDrivetrain* currentDrivetrain;
  * "I was pressed!" and nothing.
  */
 
-void initDefaultDrivetrain() {
-	static Drivetrain defaultDrivetrain({{
+void initDefaultChassis() {
+	static Chassis defaultChassis({{
 		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
 	}});
-	currentDrivetrain = &defaultDrivetrain;
+	currentChassis = &defaultChassis;
 }
 
 void on_center_button() {
@@ -228,7 +229,7 @@ void on_center_button() {
 void initialize() {
 	pros::lcd::initialize();
 
-	INIT_DRIVETRAIN();
+	INIT_CHASSIS();
 
 	pros::lcd::register_btn1_cb(on_center_button);
 }
@@ -247,7 +248,7 @@ void disabled() {}
  * on the LCD.
  *
  * This task will exit when the robot is enabled and autonomous or opcontrol
- * starts.
+ * starts
  */
 void competition_initialize() {}
 
@@ -263,7 +264,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	currentDrivetrain->auton();
+	currentChassis->auton();
 }
 
 /**
@@ -286,15 +287,15 @@ void opcontrol() {
 		autonomous();
 	}
 	
-	// Drivetrain control loop
+	// Chassis control loop
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0); // Prints status of the emulated screen LCDs
 
 
-		// Drivetrain control
-		currentDrivetrain->opControl();
+		// Chassis opcontrol
+		currentChassis->opControl();
 
 		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
 	}
