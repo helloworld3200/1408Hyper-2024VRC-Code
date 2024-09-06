@@ -43,9 +43,9 @@ class AbstractChassis {
 		pros::Controller master;
 	public:
 		/// @brief Args for abstract chassis object
-		/// @param leftPorts Vector of ports for left side of chassis
-		/// @param rightPorts Vector of ports for right side of chassis
-		/// @param master Controller for chassis
+		/// @param leftPorts Vector of ports for left side of drivetrain
+		/// @param rightPorts Vector of ports for right side of drivetrain
+		/// @param master Controller for robot
 		struct AbstractChassisArgs {
 			std::vector<std::int8_t> leftPorts;
 			std::vector<std::int8_t> rightPorts;
@@ -54,9 +54,9 @@ class AbstractChassis {
 
 		/// @brief Creates abstract chassis object
 		/// @param args Args for abstract chassis object (check args struct for more info)
-		AbstractChassis(
-		  AbstractChassisArgs args
-		) : left_mg(args.leftPorts), right_mg(args.rightPorts), master(args.master) {
+		AbstractChassis(AbstractChassisArgs args) : 
+		  left_mg(args.leftPorts), right_mg(args.rightPorts), 
+		  master(args.master) {
 			string consoleMsg = fmt::format("Chassis created with left ports: {} and right ports: {}",
 			 vectorToString(args.leftPorts), vectorToString(args.rightPorts));
 			pros::lcd::print(0, consoleMsg.c_str());
@@ -105,7 +105,7 @@ class AbstractAuton {
 };
 
 /// @brief Main auton class
-class Auton : AbstractAuton {
+class Auton : public AbstractAuton {
 	private:
 	public:
 		/// @brief Args for auton object
@@ -156,10 +156,11 @@ class Chassis : public AbstractChassis {
 
 		/// @brief Creates chassis object
 		/// @param args Args for chassis object (check args struct for more info)
-		Chassis(
-			ChassisArgs args
-		) : AbstractChassis(args.abstractChassisArgs), opControlMode(args.opControlMode), 
-		  opControlSpeed(args.opControlSpeed), autonController({this}) {};
+		Chassis(ChassisArgs args) : 
+		  AbstractChassis(args.abstractChassisArgs), 
+		  opControlMode(args.opControlMode), 
+		  opControlSpeed(args.opControlSpeed), 
+		  autonController({this}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
