@@ -21,12 +21,14 @@
 /// @param delimiter Delimiter to separate elements
 template <typename T>
 string vectorToString(vector<T>& vec, string delimiter = ", ") {
+	int vecSize = vec.size();
+	int vecSizeMinusOne = vecSize - 1;
 	std::ostringstream oss;
 
 	oss << "{";
-	for (int i = 0; i < vec.size(); i++) {
+	for (int i = 0; i < vecSize; i++) {
 		oss << vec[i];
-		if (i < vec.size() - 1) {
+		if (i < vecSizeMinusOne) {
 			oss << delimiter;
 		}
 	}
