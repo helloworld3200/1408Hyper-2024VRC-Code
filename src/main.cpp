@@ -136,8 +136,8 @@ class Chassis : public AbstractChassis {
 	private:
 	public:
 		/// @brief Enum for different driver control modes
-		enum OpControlMode {
-			ARCADE = 0
+		enum class OpControlMode {
+			ARCADE
 		};
 
 		/// @brief Args for chassis object
