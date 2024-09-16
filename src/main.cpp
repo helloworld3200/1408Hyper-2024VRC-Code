@@ -10,6 +10,11 @@
 // turn on for auton to be run at the start of opcontrol
 #define AUTON_TEST false
 
+// Turn on/off auton and opcontrol
+// Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
+#define DO_AUTON true
+#define DO_OP_CONTROL true
+
 // Ports for the drivetrain motors
 #define LEFT_DRIVE_PORTS {-1, 2, -3}
 #define RIGHT_DRIVE_PORTS {-4, 5, -6}
@@ -267,7 +272,9 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	currentChassis->auton();
+	if (DO_AUTON) {
+		currentChassis->auton();
+	}
 }
 
 /**
@@ -289,9 +296,10 @@ void opcontrol() {
 	if (AUTON_TEST) {
 		autonomous();
 	}
-	
+
+	bool opControlRunning = DO_OP_CONTROL;
 	// Chassis control loop
-	while (true) {
+	while (opControlRunning) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0); // Prints status of the emulated screen LCDs
