@@ -18,15 +18,16 @@ jobs:
         sudo apt install libncurses5
         sudo wget -P /usr/share/ https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
         sudo tar -xJf /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz -C /usr/share/
-    - name: setup symlinks & test version
+    - name: setup symlinks
       run: |
         sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-g++ /usr/bin/arm-none-eabi-g++
         sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc /usr/bin/arm-none-eabi-gcc
         sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objcopy /usr/bin/arm-none-eabi-objcopy
         sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objsize /usr/bin/arm-none-eabi-objsize
-        arm-none-eabi-g++ --version
-        arm-none-eabi-gcc --version
-  
+    - name: run tests
+      run: |
+          arm-none-eabi-g++ --version
+          arm-none-eabi-gcc --version    
     - name: make
       run: make
     # We don't need any tests for now
