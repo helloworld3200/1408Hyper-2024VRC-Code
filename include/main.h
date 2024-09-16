@@ -42,6 +42,7 @@
 #include <string>
 #include <initializer_list>
 #include <sstream>
+#include <memory>
 // Perfect forwarding
 #include <utility>
 
