@@ -21,26 +21,9 @@
 
 #define INIT_CHASSIS initDefaultChassis
 
-/// @brief Convert vector of ints to string. For displaying on the LCD/debugging
-/// @param vec Vector to convert
-/// @param delimiter Delimiter to separate elements
+// Function declarations
 template <typename T>
-string vectorToString(vector<T>& vec, string delimiter = ", ") {
-	int vecSize = vec.size();
-	int vecSizeMinusOne = vecSize - 1;
-	std::ostringstream oss;
-
-	oss << "{";
-	for (int i = 0; i < vecSize; i++) {
-		oss << vec[i];
-		if (i < vecSizeMinusOne) {
-			oss << delimiter;
-		}
-	}
-	oss << "}";
-
-	return oss.str();
-}
+string vectorToString(vector<T>& vec, string delimiter = ", ");
 
 /// @brief Abstract chassis class for if you want a custom chassis class
 class AbstractChassis {
@@ -204,6 +187,27 @@ class Chassis : public AbstractChassis {
 
 // DONT say just "chassis" because certain class properties have the same name
 AbstractChassis* currentChassis;
+
+/// @brief Convert vector of ints to string. For displaying on the LCD/debugging
+/// @param vec Vector to convert
+/// @param delimiter Delimiter to separate elements
+template <typename T>
+string vectorToString(vector<T>& vec, string delimiter = ", ") {
+	int vecSize = vec.size();
+	int vecSizeMinusOne = vecSize - 1;
+	std::ostringstream oss;
+
+	oss << "{";
+	for (int i = 0; i < vecSize; i++) {
+		oss << vec[i];
+		if (i < vecSizeMinusOne) {
+			oss << delimiter;
+		}
+	}
+	oss << "}";
+
+	return oss.str();
+}
 
 /**
  * A callback function for LLEMU's center button.
