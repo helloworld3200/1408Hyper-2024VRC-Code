@@ -11,8 +11,8 @@
 #define AUTON_TEST false
 
 // Ports for the drivetrain motors
-#define LEFT_DRIVE_PORTS {-1, 2, -3}
-#define RIGHT_DRIVE_PORTS {-4, 5, -6}
+#define LEFT_DRIVE_PORTS {1, 2, 3}
+#define RIGHT_DRIVE_PORTS {-4, -5, -6}
 
 #define INIT_CHASSIS initDefaultChassis
 
@@ -148,7 +148,7 @@ class Chassis : public AbstractChassis {
 		struct ChassisArgs {
 			AbstractChassis::AbstractChassisArgs abstractChassisArgs;
 			OpControlMode opControlMode = OpControlMode::ARCADE;
-			int opControlSpeed = 1;
+			int opControlSpeed = 2;
 			int autonSpeed = 100;
 		};
 
