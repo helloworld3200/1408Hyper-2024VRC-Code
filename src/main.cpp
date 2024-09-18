@@ -103,7 +103,7 @@ class Auton : public AbstractAuton {
 		/// @param abstractAutonArgs Args for abstract auton object
 		/// @param speed Speed for auton control
 		struct AutonArgs {
-			AbstractAuton::AbstractAutonArgs abstractAutonArgs;
+			AbstractAutonArgs abstractAutonArgs;
 			int speed = 100;
 		};
 
@@ -143,13 +143,13 @@ class Chassis : public AbstractChassis {
 		/// @param opControlSpeed Speed for driver control
 		/// @param autonSpeed Speed for auton control
 		struct ChassisArgs {
-			AbstractChassis::AbstractChassisArgs abstractChassisArgs;
+			AbstractChassisArgs abstractChassisArgs;
 			OpControlSpeed opControlSpeed = {};
 			OpControlMode opControlMode = OpControlMode::ARCADE;
 			int autonSpeed = 100;
 		};
 
-		Chassis::OpControlMode opControlMode;
+		OpControlMode opControlMode;
 		OpControlSpeed opControlSpeed;
 
 		Auton autonController;
@@ -166,7 +166,7 @@ class Chassis : public AbstractChassis {
 		/// (recommended to be used instead of directly calling the control functions)
 		void opControl() override {
 			switch (opControlMode) {
-				case Chassis::OpControlMode::ARCADE:
+				case OpControlMode::ARCADE:
 					arcadeControl();
 					break;
 				default:
