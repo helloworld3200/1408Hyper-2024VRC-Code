@@ -129,6 +129,14 @@ class Chassis : public AbstractChassis {
 			ARCADE
 		};
 
+		/// @brief Struct for different driver control speeds
+		/// @param turnSpeed Speed for turning
+		/// @param forwardBackSpeed Speed for forward/backward
+		struct OpControlSpeed {
+			int turnSpeed = 2;
+			int forwardBackSpeed = 2;
+		};
+
 		/// @brief Args for chassis object
 		/// @param abstractChassisArgs Args for abstract chassis object
 		/// @param opControlMode Mode for driver control
@@ -136,13 +144,13 @@ class Chassis : public AbstractChassis {
 		/// @param autonSpeed Speed for auton control
 		struct ChassisArgs {
 			AbstractChassis::AbstractChassisArgs abstractChassisArgs;
+			OpControlSpeed opControlSpeed = {};
 			OpControlMode opControlMode = OpControlMode::ARCADE;
-			int opControlSpeed = 2;
 			int autonSpeed = 100;
 		};
 
 		Chassis::OpControlMode opControlMode;
-		int opControlSpeed;
+		OpControlSpeed opControlSpeed;
 
 		Auton autonController;
 
@@ -171,9 +179,12 @@ class Chassis : public AbstractChassis {
 		void arcadeControl() {
 			int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 			int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
+
+			dir *= opControlSpeed.forwardBackSpeed;
+			turn *= opControlSpeed.turnSpeed;
 			
-			int left_voltage = opControlSpeed * (dir - turn);                      // Sets left motor voltage
-			int right_voltage = opControlSpeed * (dir + turn);                     // Sets right motor voltage
+			int left_voltage = dir - turn;                      // Sets left motor voltage
+			int right_voltage = dir + turn;                     // Sets right motor voltage
 
 			left_mg.move(left_voltage);
 			right_mg.move(right_voltage);
