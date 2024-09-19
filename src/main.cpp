@@ -16,8 +16,8 @@
 #define DO_OP_CONTROL true
 
 // Ports for the drivetrain motors
-#define LEFT_DRIVE_PORTS {1, 2, 3}
-#define RIGHT_DRIVE_PORTS {-4, -5, -6}
+#define LEFT_DRIVE_PORTS {10, 9, 8}
+#define RIGHT_DRIVE_PORTS {20, 19, 18}
 
 #define INIT_CHASSIS initDefaultChassis
 
@@ -169,8 +169,8 @@ class Chassis : public AbstractChassis {
 
 		/// @brief Arcade control for drive control (recommended to use opControl instead)
 		void arcadeControl() {
-			int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
-			int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
+			int dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
+			int turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
 			
 			int left_voltage = opControlSpeed * (dir - turn);                      // Sets left motor voltage
 			int right_voltage = opControlSpeed * (dir + turn);                     // Sets right motor voltage
