@@ -304,7 +304,15 @@ void pneumatic_actuation(pros::Controller& master) {
 	piston.set_value(false);
   }
 }
-
+void testcontrol (){
+	pros::Controller controller(pros::E_CONTROLLER_MASTER);
+	while (true) {
+		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+			pneumatic_actuation(controller);
+		}
+		pros::delay(20); // Add a small delay to prevent overwhelming the CPU
+	}
+}
 void opcontrol() {
 	if (AUTON_TEST) {
 		autonomous();
