@@ -127,6 +127,7 @@ class Chassis : public AbstractChassis {
 		/// @brief Enum for different driver control modes
 		enum class OpControlMode {
 			ARCADE
+
 		};
 
 		/// @brief Struct for different driver control speeds
@@ -293,6 +294,38 @@ void autonomous() {
 	}
 }
 
+#define DIGITAL_SENSOR_PORT 'A'
+
+void pneumatic_actuation(pros::Controller& master) {
+  pros::ADIDigitalOut piston (DIGITAL_SENSOR_PORT);
+  if (master.get_digital(pros::controller_digital_e_t::E_CONTROLLER_DIGITAL_A)) {
+	piston.set_value(true);
+  } else {
+	piston.set_value(false);
+  }
+}
+
+void opcontrol() {
+	if (AUTON_TEST) {
+		autonomous();
+	}
+
+	bool opControlRunning = DO_OP_CONTROL;
+	// Chassis control loop
+	while (opControlRunning) {
+		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
+						 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
+						 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0); // Prints status of the emulated screen LCDs
+
+		// Chassis opcontrol
+		currentChassis->opControl();
+
+		// Pneumatic actuation
+		pneumatic_actuation(currentChassis->getController());
+
+		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
+	}
+}
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -307,23 +340,3 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 
-void opcontrol() {
-
-	if (AUTON_TEST) {
-		autonomous();
-	}
-
-	bool opControlRunning = DO_OP_CONTROL;
-	// Chassis control loop
-	while (opControlRunning) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0); // Prints status of the emulated screen LCDs
-
-
-		// Chassis opcontrol
-		currentChassis->opControl();
-
-		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
-	}
-}
