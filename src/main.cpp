@@ -10,6 +10,12 @@
 // turn on for auton to be run at the start of opcontrol
 #define AUTON_TEST false
 
+#define opcontrol testcontrol
+
+// TODO: change port variable name to be more descriptive
+// Digital sensor port for pneumatics
+#define DIGITAL_SENSOR_PORT "A"
+
 // Turn on/off auton and opcontrol
 // Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
 #define DO_AUTON true
@@ -294,10 +300,8 @@ void autonomous() {
 	}
 }
 
-#define DIGITAL_SENSOR_PORT 'A'
-
 void pneumatic_actuation(pros::Controller& master) {
-  pros::ADIDigitalOut piston (DIGITAL_SENSOR_PORT);
+  pros::ADIDigitalOut piston (1);
   if (master.get_digital(pros::controller_digital_e_t::E_CONTROLLER_DIGITAL_A)) {
 	piston.set_value(true);
   } else {
@@ -308,12 +312,13 @@ void testcontrol (){
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	while (true) {
 		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-			pneumatic_actuation(controller);
+			//pneumatic_actuation(controller);
+			currentChassis->getLeftMotorGroup().move(127);
 		}
 		pros::delay(20); // Add a small delay to prevent overwhelming the CPU
 	}
 }
-void opcontrol() {
+void mainControl() {
 	if (AUTON_TEST) {
 		autonomous();
 	}
