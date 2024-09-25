@@ -82,33 +82,32 @@ class AbstractChassis {
 };
 
 /// @brief Abstract class for autonomous routines
-class AbstractAuton {
+class ChassisComponent {
 	private:
 	protected:
 		AbstractChassis* chassis;
 	public:
 		/// @brief Args for abstract auton object
 		/// @param chassis Chassis object for auton control
-		struct AbstractAutonArgs {
+		struct ChassisComponentArgs {
 			AbstractChassis* chassis;
 		};
 
 		/// @brief Creates abstract auton object
 		/// @param args Args for abstract auton object (check args struct for more info)
-		AbstractAuton(AbstractAutonArgs args) : chassis(args.chassis) {};
-		virtual ~AbstractAuton() = default;
-		virtual void go() = 0;
+		ChassisComponent(ChassisComponentArgs args) : chassis(args.chassis) {};
+		virtual ~ChassisComponent() = default;
 };
 
 /// @brief Main auton class
-class Auton : public AbstractAuton {
+class Auton : public ChassisComponent {
 	private:
 	public:
 		/// @brief Args for auton object
 		/// @param abstractAutonArgs Args for abstract auton object
 		/// @param speed Speed for auton control
 		struct AutonArgs {
-			AbstractAutonArgs abstractAutonArgs;
+			ChassisComponentArgs chassisComponentArgs;
 			int speed = 100;
 		};
 
@@ -117,9 +116,9 @@ class Auton : public AbstractAuton {
 		/// @brief Creates auton object
 		/// @param args Args for auton object (check args struct for more info)
 		Auton(AutonArgs args) : 
-			AbstractAuton(args.abstractAutonArgs), speed(args.speed) {};
+			ChassisComponent(args.chassisComponentArgs), speed(args.speed) {};
 
-		void go() override {
+		void go() {
 			// TODO: Implement auton
 			
 		};
