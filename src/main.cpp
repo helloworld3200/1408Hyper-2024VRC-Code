@@ -10,11 +10,11 @@
 // turn on for auton to be run at the start of opcontrol
 #define AUTON_TEST false
 
-#define opcontrol testcontrol
+#define CURRENT_OPCONTROL mainControl
 
 // TODO: change port variable name to be more descriptive
 // Digital sensor port for pneumatics
-#define DIGITAL_SENSOR_PORT "A"
+#define MOGO_MECH_PORT 'A'
 
 // Turn on/off auton and opcontrol
 // Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
@@ -206,6 +206,10 @@ class Chassis : public AbstractChassis {
 // DONT say just "chassis" because certain class properties have the same name
 AbstractChassis* currentChassis;
 
+bool mogoMechEngaged = false;
+pros::ADIDigitalOut mogoMechPiston(MOGO_MECH_PORT);
+bool mogoMechLastPressed = false;
+
 /// @brief Convert vector of ints to string. For displaying on the LCD/debugging
 /// @param vec Vector to convert
 /// @param delimiter Delimiter to separate elements
@@ -301,27 +305,35 @@ void autonomous() {
 }
 
 void pneumatic_actuation(pros::Controller& master) {
-  pros::ADIDigitalOut piston (1);
-  if (master.get_digital(pros::controller_digital_e_t::E_CONTROLLER_DIGITAL_A)) {
-	piston.set_value(true);
-  } else {
-	piston.set_value(false);
+  if (!mogoMechLastPressed) {
+	pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+	mogoMechEngaged = !mogoMechEngaged;
+	if (mogoMechEngaged) {
+		mogoMechPiston.set_value(true);
+	} else {
+		mogoMechPiston.set_value(false);
+	}
   }
 }
 void testcontrol (){
+	pros::lcd::set_text(0, "In testcontrol");
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	while (true) {
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-			//pneumatic_actuation(controller);
-			currentChassis->getLeftMotorGroup().move(127);
-		}
+
 		pros::delay(20); // Add a small delay to prevent overwhelming the CPU
 	}
 }
+
+void opcontrol() {
+	CURRENT_OPCONTROL();
+}
+
 void mainControl() {
 	if (AUTON_TEST) {
 		autonomous();
 	}
+
+	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 	bool opControlRunning = DO_OP_CONTROL;
 	// Chassis control loop
@@ -334,7 +346,13 @@ void mainControl() {
 		currentChassis->opControl();
 
 		// Pneumatic actuation
-		pneumatic_actuation(currentChassis->getController());
+		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+			pneumatic_actuation(controller);
+			mogoMechLastPressed = true;
+			//pros::lcd::set_text(1, "L1 pressed");
+		} else {
+			mogoMechLastPressed = false;
+		}
 
 		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
 	}
