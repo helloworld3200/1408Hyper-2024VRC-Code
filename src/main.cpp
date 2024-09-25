@@ -12,8 +12,7 @@
 
 #define CURRENT_OPCONTROL mainControl
 
-// TODO: change port variable name to be more descriptive
-// Digital sensor port for pneumatics
+// Digital sensor port for pneumatics mogo mech
 #define MOGO_MECH_PORT 'A'
 
 // Turn on/off auton and opcontrol
