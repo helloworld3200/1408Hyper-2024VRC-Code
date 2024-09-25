@@ -324,10 +324,6 @@ void testcontrol (){
 	}
 }
 
-void opcontrol() {
-	CURRENT_OPCONTROL();
-}
-
 void mainControl() {
 	if (AUTON_TEST) {
 		autonomous();
@@ -371,3 +367,6 @@ void mainControl() {
  * task, not resume it from where it left off.
  */
 
+void opcontrol() {
+	CURRENT_OPCONTROL();
+}
