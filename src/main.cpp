@@ -106,6 +106,18 @@ class MogoMech : public ChassisComponent {
 		pros::ADIDigitalOut piston;
 		bool engaged = false;
 		bool lastPressed = false;
+
+		void pneumaticActuation() {
+			if (!mogoMechLastPressed) {
+				//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+				mogoMechEngaged = !mogoMechEngaged;
+				if (mogoMechEngaged) {
+					mogoMechPiston.set_value(true);
+				} else {
+					mogoMechPiston.set_value(false);
+				}
+			}
+		}
 	protected:
 	public:
 		/// @brief Args for mogo mech object
@@ -122,8 +134,19 @@ class MogoMech : public ChassisComponent {
 			master(&chassis->getController()),
 			piston(args.pistonPort) {};
 
-		void opcontrol () {
-			
+		void opControl () {
+			// Perform the actuation if this is the button has JUST been pressed
+			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+				pneumaticActuation();
+				mogoMechLastPressed = true;
+				//pros::lcd::set_text(1, "L1 pressed");
+			} else {
+				mogoMechLastPressed = false;
+			}
+		}
+
+		pros::ADIDigitalOut& getPiston() {
+			return piston;
 		}
 };
 
@@ -175,8 +198,10 @@ class Chassis : public AbstractChassis {
 		/// @param opControlMode Mode for driver control
 		/// @param opControlSpeed Speed for driver control
 		/// @param autonSpeed Speed for auton control
+		/// @param mogoMechPort Port for mogo mech
 		struct ChassisArgs {
 			AbstractChassisArgs abstractChassisArgs;
+			char mogoMechPort;
 			OpControlSpeed opControlSpeed = {};
 			OpControlMode opControlMode = OpControlMode::ARCADE;
 			int autonSpeed = 100;
@@ -196,12 +221,13 @@ class Chassis : public AbstractChassis {
 		  opControlMode(args.opControlMode), 
 		  opControlSpeed(args.opControlSpeed), 
 		  autonController({this}),
-		  mogoMech({this}) {};
+		  mogoMech({this, args.mogoMechPort}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
 		void opControl() override {
-			mogoMech.opcontrol();
+			// Run the mainloop for the mogo mech
+			mogoMech.opControl();
 
 			switch (opControlMode) {
 				case OpControlMode::ARCADE:
@@ -272,7 +298,7 @@ string vectorToString(vector<T>& vec, string delimiter) {
 void initDefaultChassis() {
 	static Chassis defaultChassis({{
 		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
-	}});
+	}, MOGO_MECH_PORT});
 	currentChassis = &defaultChassis;
 }
 
@@ -335,17 +361,7 @@ void autonomous() {
 	}
 }
 
-void pneumatic_actuation(pros::Controller& master) {
-  if (!mogoMechLastPressed) {
-	pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-	mogoMechEngaged = !mogoMechEngaged;
-	if (mogoMechEngaged) {
-		mogoMechPiston.set_value(true);
-	} else {
-		mogoMechPiston.set_value(false);
-	}
-  }
-}
+
 
 // Not used anymore, used to be for pneumatics testing
 void testcontrol () {
@@ -374,14 +390,7 @@ void mainControl() {
 		// Chassis opcontrol
 		currentChassis->opControl();
 
-		// Pneumatic actuation
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-			pneumatic_actuation(controller);
-			mogoMechLastPressed = true;
-			//pros::lcd::set_text(1, "L1 pressed");
-		} else {
-			mogoMechLastPressed = false;
-		}
+
 
 		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
 	}
