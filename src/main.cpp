@@ -102,19 +102,29 @@ class ChassisComponent {
 class MogoMech : public ChassisComponent {
 	private:
 		pros::Controller* master;
+		
+		pros::ADIDigitalOut piston;
+		bool engaged = false;
+		bool lastPressed = false;
 	protected:
 	public:
 		/// @brief Args for mogo mech object
 		/// @param chassisComponentArgs Args for ChassisComponent object
 		struct MogoMechArgs {
 			ChassisComponentArgs chassisComponentArgs;
+			char pistonPort;
 		};
 
 		/// @brief Creates mogo mech object
 		/// @param args Args for MogoMech object (check args struct for more info)
 		MogoMech(MogoMechArgs args) : 
 			ChassisComponent(args.chassisComponentArgs),
-			master(&chassis->getController()) {};
+			master(&chassis->getController()),
+			piston(args.pistonPort) {};
+
+		void opcontrol () {
+			
+		}
 };
 
 /// @brief Main auton class
@@ -191,6 +201,8 @@ class Chassis : public AbstractChassis {
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
 		void opControl() override {
+			mogoMech.opcontrol();
+
 			switch (opControlMode) {
 				case OpControlMode::ARCADE:
 					arcadeControl();
