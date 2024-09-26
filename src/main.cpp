@@ -81,22 +81,40 @@ class AbstractChassis {
 		virtual void auton() = 0;
 };
 
-/// @brief Abstract class for autonomous routines
+/// @brief Class for components of the chassis to derive from
 class ChassisComponent {
 	private:
 	protected:
 		AbstractChassis* chassis;
 	public:
-		/// @brief Args for abstract auton object
-		/// @param chassis Chassis object for auton control
+		/// @brief Args for ChassisComponent object
+		/// @param chassis AbstractChassis derived object to be used for the component
 		struct ChassisComponentArgs {
 			AbstractChassis* chassis;
 		};
 
-		/// @brief Creates abstract auton object
-		/// @param args Args for abstract auton object (check args struct for more info)
+		/// @brief Creates ChassisComponent object
+		/// @param args Args ChassisComponent object (check args struct for more info)
 		ChassisComponent(ChassisComponentArgs args) : chassis(args.chassis) {};
 		virtual ~ChassisComponent() = default;
+};
+
+class MogoMech : public ChassisComponent {
+	private:
+		pros::Controller* master;
+	protected:
+	public:
+		/// @brief Args for mogo mech object
+		/// @param chassisComponentArgs Args for ChassisComponent object
+		struct MogoMechArgs {
+			ChassisComponentArgs chassisComponentArgs;
+		};
+
+		/// @brief Creates mogo mech object
+		/// @param args Args for MogoMech object (check args struct for more info)
+		MogoMech(MogoMechArgs args) : 
+			ChassisComponent(args.chassisComponentArgs),
+			master(&chassis->getController()) {};
 };
 
 /// @brief Main auton class
@@ -104,7 +122,7 @@ class Auton : public ChassisComponent {
 	private:
 	public:
 		/// @brief Args for auton object
-		/// @param abstractAutonArgs Args for abstract auton object
+		/// @param chassisComponentArgs Args for ChassisComponent object
 		/// @param speed Speed for auton control
 		struct AutonArgs {
 			ChassisComponentArgs chassisComponentArgs;
@@ -114,7 +132,7 @@ class Auton : public ChassisComponent {
 		int speed;
 
 		/// @brief Creates auton object
-		/// @param args Args for auton object (check args struct for more info)
+		/// @param args Args for ChassisComponent object (check args struct for more info)
 		Auton(AutonArgs args) : 
 			ChassisComponent(args.chassisComponentArgs), speed(args.speed) {};
 
@@ -159,13 +177,16 @@ class Chassis : public AbstractChassis {
 
 		Auton autonController;
 
+		MogoMech mogoMech;
+
 		/// @brief Creates chassis object
 		/// @param args Args for chassis object (check args struct for more info)
 		Chassis(ChassisArgs args) : 
 		  AbstractChassis(args.abstractChassisArgs), 
 		  opControlMode(args.opControlMode), 
 		  opControlSpeed(args.opControlSpeed), 
-		  autonController({this}) {};
+		  autonController({this}),
+		  mogoMech({this}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
@@ -313,7 +334,9 @@ void pneumatic_actuation(pros::Controller& master) {
 	}
   }
 }
-void testcontrol (){
+
+// Not used anymore, used to be for pneumatics testing
+void testcontrol () {
 	pros::lcd::set_text(0, "In testcontrol");
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	while (true) {
