@@ -108,13 +108,13 @@ class MogoMech : public ChassisComponent {
 		bool lastPressed = false;
 
 		void pneumaticActuation() {
-			if (!mogoMechLastPressed) {
+			if (!lastPressed) {
 				//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-				mogoMechEngaged = !mogoMechEngaged;
-				if (mogoMechEngaged) {
-					mogoMechPiston.set_value(true);
+				engaged = !engaged;
+				if (engaged) {
+					piston.set_value(true);
 				} else {
-					mogoMechPiston.set_value(false);
+					piston.set_value(false);
 				}
 			}
 		}
@@ -138,10 +138,10 @@ class MogoMech : public ChassisComponent {
 			// Perform the actuation if this is the button has JUST been pressed
 			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
 				pneumaticActuation();
-				mogoMechLastPressed = true;
+				lastPressed = true;
 				//pros::lcd::set_text(1, "L1 pressed");
 			} else {
-				mogoMechLastPressed = false;
+				lastPressed = false;
 			}
 		}
 
@@ -262,10 +262,6 @@ class Chassis : public AbstractChassis {
 
 // DONT say just "chassis" because certain class properties have the same name
 AbstractChassis* currentChassis;
-
-bool mogoMechEngaged = false;
-pros::ADIDigitalOut mogoMechPiston(MOGO_MECH_PORT);
-bool mogoMechLastPressed = false;
 
 /// @brief Convert vector of ints to string. For displaying on the LCD/debugging
 /// @param vec Vector to convert
