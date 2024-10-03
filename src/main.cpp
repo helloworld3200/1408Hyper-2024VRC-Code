@@ -102,6 +102,57 @@ class ChassisComponent {
 		virtual ~ChassisComponent() = default;
 };
 
+class ConvMech : public ChassisComponent {
+	private:
+		pros::Controller* master;
+		
+		pros::ADIDigitalOut piston;
+		bool engaged = false;
+		bool lastPressed = false;
+
+		void pneumaticActuation() {
+			if (!lastPressed) {
+				//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+				engaged = !engaged;
+				if (engaged) {
+					piston.set_value(true);
+				} else {
+					piston.set_value(false);
+				}
+			}
+		}
+	protected:
+	public:
+		/// @brief Args for mogo mech object
+		/// @param chassisComponentArgs Args for ChassisComponent object
+		struct ConvMechArgs {
+			ChassisComponentArgs chassisComponentArgs;
+			char pistonPort;
+		};
+
+		/// @brief Creates mogo mech object
+		/// @param args Args for MogoMech object (check args struct for more info)
+		ConvMech(ConvMechArgs args) : 
+			ChassisComponent(args.chassisComponentArgs),
+			master(&chassis->getController()),
+			piston(args.pistonPort) {};
+
+		void opControl () {
+			// Perform the actuation if this is the button has JUST been pressed
+			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+				pneumaticActuation();
+				lastPressed = true;
+				//pros::lcd::set_text(1, "L1 pressed");
+			} else {
+				lastPressed = false;
+			}
+		}
+
+		pros::ADIDigitalOut& getPiston() {
+			return piston;
+		}
+};
+
 class MogoMech : public ChassisComponent {
 	private:
 		pros::Controller* master;
