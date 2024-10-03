@@ -15,6 +15,9 @@
 // Digital sensor port for pneumatics mogo mech
 #define MOGO_MECH_PORT 'A'
 
+//Digital sensor port for pneumatics conveyor lift
+#define CONV_MECH_PORT 'B'
+
 // Turn on/off auton and opcontrol
 // Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
 #define DO_AUTON true
