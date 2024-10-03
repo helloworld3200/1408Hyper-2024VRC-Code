@@ -13,8 +13,12 @@
 #define CURRENT_OPCONTROL mainControl
 
 // TODO: change port variable name to be more descriptive
-// Digital sensor port for pneumatics
+// Digital sensor port for pneumatics mogo mech
+
 #define MOGO_MECH_PORT 'A'
+
+//Digital sensor port for pneumatics conveyor lift
+#define CONV_MECH_PORT 'B'
 
 // Turn on/off auton and opcontrol
 // Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
@@ -82,45 +86,146 @@ class AbstractChassis {
 		virtual void auton() = 0;
 };
 
-/// @brief Abstract class for autonomous routines
-class AbstractAuton {
+/// @brief Class for components of the chassis to derive from
+class ChassisComponent {
 	private:
 	protected:
 		AbstractChassis* chassis;
 	public:
-		/// @brief Args for abstract auton object
-		/// @param chassis Chassis object for auton control
-		struct AbstractAutonArgs {
+		/// @brief Args for ChassisComponent object
+		/// @param chassis AbstractChassis derived object to be used for the component
+		struct ChassisComponentArgs {
 			AbstractChassis* chassis;
 		};
 
-		/// @brief Creates abstract auton object
-		/// @param args Args for abstract auton object (check args struct for more info)
-		AbstractAuton(AbstractAutonArgs args) : chassis(args.chassis) {};
-		virtual ~AbstractAuton() = default;
-		virtual void go() = 0;
+		/// @brief Creates ChassisComponent object
+		/// @param args Args ChassisComponent object (check args struct for more info)
+		ChassisComponent(ChassisComponentArgs args) : chassis(args.chassis) {};
+		virtual ~ChassisComponent() = default;
+};
+
+class ConvMech : public ChassisComponent {
+	private:
+		pros::Controller* master;
+		
+		pros::ADIDigitalOut piston;
+		bool engaged = false;
+		bool lastPressed = false;
+
+		void pneumaticActuation() {
+			if (!lastPressed) {
+				//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+				engaged = !engaged;
+				if (engaged) {
+					piston.set_value(true);
+				} else {
+					piston.set_value(false);
+				}
+			}
+		}
+	protected:
+	public:
+		/// @brief Args for mogo mech object
+		/// @param chassisComponentArgs Args for ChassisComponent object
+		struct ConvMechArgs {
+			ChassisComponentArgs chassisComponentArgs;
+			char pistonPort;
+		};
+
+		/// @brief Creates mogo mech object
+		/// @param args Args for MogoMech object (check args struct for more info)
+		ConvMech(ConvMechArgs args) : 
+			ChassisComponent(args.chassisComponentArgs),
+			master(&chassis->getController()),
+			piston(args.pistonPort) {};
+
+		void opControl () {
+			// Perform the actuation if this is the button has JUST been pressed
+			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+				pneumaticActuation();
+				lastPressed = true;
+				//pros::lcd::set_text(1, "L1 pressed");
+			} else {
+				lastPressed = false;
+			}
+		}
+
+		pros::ADIDigitalOut& getPiston() {
+			return piston;
+		}
+};
+
+class MogoMech : public ChassisComponent {
+	private:
+		pros::Controller* master;
+		
+		pros::ADIDigitalOut piston;
+		bool engaged = false;
+		bool lastPressed = false;
+
+		void pneumaticActuation() {
+			if (!lastPressed) {
+				//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+				engaged = !engaged;
+				if (engaged) {
+					piston.set_value(true);
+				} else {
+					piston.set_value(false);
+				}
+			}
+		}
+	protected:
+	public:
+		/// @brief Args for mogo mech object
+		/// @param chassisComponentArgs Args for ChassisComponent object
+		struct MogoMechArgs {
+			ChassisComponentArgs chassisComponentArgs;
+			char pistonPort;
+		};
+
+		/// @brief Creates mogo mech object
+		/// @param args Args for MogoMech object (check args struct for more info)
+		MogoMech(MogoMechArgs args) : 
+			ChassisComponent(args.chassisComponentArgs),
+			master(&chassis->getController()),
+			piston(args.pistonPort) {};
+
+		void opControl () {
+			// Perform the actuation if this is the button has JUST been pressed
+			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+				pneumaticActuation();
+				lastPressed = true;
+				//pros::lcd::set_text(1, "L1 pressed");
+			} else {
+				lastPressed = false;
+			}
+		}
+
+		pros::ADIDigitalOut& getPiston() {
+			return piston;
+		}
 };
 
 /// @brief Main auton class
-class Auton : public AbstractAuton {
+class Auton : public ChassisComponent {
 	private:
 	public:
 		/// @brief Args for auton object
-		/// @param abstractAutonArgs Args for abstract auton object
+		/// @param chassisComponentArgs Args for ChassisComponent object
 		/// @param speed Speed for auton control
 		struct AutonArgs {
-			AbstractAutonArgs abstractAutonArgs;
+			ChassisComponentArgs chassisComponentArgs;
 			int speed = 100;
 		};
 
 		int speed;
 
 		/// @brief Creates auton object
-		/// @param args Args for auton object (check args struct for more info)
+		/// @param args Args for ChassisComponent object (check args struct for more info)
 		Auton(AutonArgs args) : 
-			AbstractAuton(args.abstractAutonArgs), speed(args.speed) {};
+			ChassisComponent(args.chassisComponentArgs), speed(args.speed) {};
 
-		void go() override {
+		void go() {
 			// TODO: Implement auton
 			
 		};
@@ -149,8 +254,10 @@ class Chassis : public AbstractChassis {
 		/// @param opControlMode Mode for driver control
 		/// @param opControlSpeed Speed for driver control
 		/// @param autonSpeed Speed for auton control
+		/// @param mogoMechPort Port for mogo mech
 		struct ChassisArgs {
 			AbstractChassisArgs abstractChassisArgs;
+			char mogoMechPort;
 			OpControlSpeed opControlSpeed = {};
 			OpControlMode opControlMode = OpControlMode::ARCADE;
 			int autonSpeed = 100;
@@ -161,17 +268,23 @@ class Chassis : public AbstractChassis {
 
 		Auton autonController;
 
+		MogoMech mogoMech;
+
 		/// @brief Creates chassis object
 		/// @param args Args for chassis object (check args struct for more info)
 		Chassis(ChassisArgs args) : 
 		  AbstractChassis(args.abstractChassisArgs), 
 		  opControlMode(args.opControlMode), 
 		  opControlSpeed(args.opControlSpeed), 
-		  autonController({this}) {};
+		  autonController({this}),
+		  mogoMech({this, args.mogoMechPort}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
 		void opControl() override {
+			// Run the mainloop for the mogo mech
+			mogoMech.opControl();
+
 			switch (opControlMode) {
 				case OpControlMode::ARCADE:
 					arcadeControl();
@@ -206,10 +319,6 @@ class Chassis : public AbstractChassis {
 // DONT say just "chassis" because certain class properties have the same name
 AbstractChassis* currentChassis;
 
-bool mogoMechEngaged = false;
-pros::ADIDigitalOut mogoMechPiston(MOGO_MECH_PORT);
-bool mogoMechLastPressed = false;
-
 /// @brief Convert vector of ints to string. For displaying on the LCD/debugging
 /// @param vec Vector to convert
 /// @param delimiter Delimiter to separate elements
@@ -241,7 +350,7 @@ string vectorToString(vector<T>& vec, string delimiter) {
 void initDefaultChassis() {
 	static Chassis defaultChassis({{
 		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
-	}});
+	}, MOGO_MECH_PORT});
 	currentChassis = &defaultChassis;
 }
 
@@ -304,18 +413,10 @@ void autonomous() {
 	}
 }
 
-void pneumatic_actuation(pros::Controller& master) {
-  if (!mogoMechLastPressed) {
-	pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-	mogoMechEngaged = !mogoMechEngaged;
-	if (mogoMechEngaged) {
-		mogoMechPiston.set_value(true);
-	} else {
-		mogoMechPiston.set_value(false);
-	}
-  }
-}
-void testcontrol (){
+
+
+// Not used anymore, used to be for pneumatics testing
+void testcontrol () {
 	pros::lcd::set_text(0, "In testcontrol");
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	while (true) {
@@ -341,14 +442,7 @@ void mainControl() {
 		// Chassis opcontrol
 		currentChassis->opControl();
 
-		// Pneumatic actuation
-		if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-			pneumatic_actuation(controller);
-			mogoMechLastPressed = true;
-			//pros::lcd::set_text(1, "L1 pressed");
-		} else {
-			mogoMechLastPressed = false;
-		}
+
 
 		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
 	}
