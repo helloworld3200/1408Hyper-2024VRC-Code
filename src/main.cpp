@@ -19,6 +19,9 @@
 #define CONV_MECH_PORT 'B'
 
 // Motor ports for the conveyer
+#define CONVEYER_PORTS {1, 2}
+
+// Motor ports for the conveyer
 
 // Turn on/off auton and opcontrol
 // Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
@@ -108,37 +111,43 @@ class Conveyer: public ChassisComponent {
 	private:
 		pros::Controller* master;
 
-		pros::Motor conveyerMotor;
+		pros::MotorGroup conveyerMotors;
+		bool conveyerEngaged = false;
 
 		bool btnLastPressed = false;
+		pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_R1;
 
 		void moveConveyer() {
-			conveyerMotor.move_velocity(200);
+			if (conveyerEngaged) {
+				conveyerMotors.move_velocity(0);
+				conveyerEngaged = false;
+			} else {
+				conveyerMotors.move_velocity(200);
+				conveyerEngaged = true;
+			}
 		}
 	protected:
 	public:
 		struct ConveyerArgs {
 			ChassisComponentArgs chassisComponentArgs;
-			std::int8_t conveyerPort;
+			vector<std::int8_t> conveyerPorts;
 		};
 
 		Conveyer(ConveyerArgs args) :
 			ChassisComponent(args.chassisComponentArgs),
 			master(&chassis->getController()),
-			conveyerMotor(args.conveyerPort) {};
+			conveyerMotors(args.conveyerPorts) {};
 
 		void opControl() {
-			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-				btnLastPressed = true;
-				moveConveyer();
-			} else {
-				if (btnLastPressed) {
-					conveyerMotor.move_velocity(0);
+			if (master->get_digital(btn)) {
+				if (!btnLastPressed) {
+					moveConveyer();
 				}
+
+				btnLastPressed = true;
+			} else {
 				btnLastPressed = false;
 			}
-
-			
 		}
 };
 
@@ -296,6 +305,7 @@ class Chassis : public AbstractChassis {
 		struct ChassisArgs {
 			AbstractChassisArgs abstractChassisArgs;
 			char mogoMechPort;
+			vector<std::int8_t> conveyerPorts;
 			OpControlSpeed opControlSpeed = {};
 			OpControlMode opControlMode = OpControlMode::ARCADE;
 			int autonSpeed = 100;
@@ -307,6 +317,8 @@ class Chassis : public AbstractChassis {
 		Auton autonController;
 
 		MogoMech mogoMech;
+		
+		Conveyer conveyer;
 
 		/// @brief Creates chassis object
 		/// @param args Args for chassis object (check args struct for more info)
@@ -315,7 +327,8 @@ class Chassis : public AbstractChassis {
 		  opControlMode(args.opControlMode), 
 		  opControlSpeed(args.opControlSpeed), 
 		  autonController({this}),
-		  mogoMech({this, args.mogoMechPort}) {};
+		  mogoMech({this, args.mogoMechPort}),
+		  conveyer({this, args.conveyerPorts}) {};
 
 		/// @brief Runs the default drive mode specified in opControlMode 
 		/// (recommended to be used instead of directly calling the control functions)
@@ -388,7 +401,7 @@ string vectorToString(vector<T>& vec, string delimiter) {
 void initDefaultChassis() {
 	static Chassis defaultChassis({{
 		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
-	}, MOGO_MECH_PORT});
+	}, MOGO_MECH_PORT, CONVEYER_PORTS});
 	currentChassis = &defaultChassis;
 }
 
