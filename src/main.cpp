@@ -18,6 +18,8 @@
 //Digital sensor port for pneumatics conveyor lift
 #define CONV_MECH_PORT 'B'
 
+// Motor ports for the conveyer
+
 // Turn on/off auton and opcontrol
 // Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
 #define DO_AUTON true
@@ -100,6 +102,44 @@ class ChassisComponent {
 		/// @param args Args ChassisComponent object (check args struct for more info)
 		ChassisComponent(ChassisComponentArgs args) : chassis(args.chassis) {};
 		virtual ~ChassisComponent() = default;
+};
+
+class Conveyer: public ChassisComponent {
+	private:
+		pros::Controller* master;
+
+		pros::Motor conveyerMotor;
+
+		bool btnLastPressed = false;
+
+		void moveConveyer() {
+			conveyerMotor.move_velocity(200);
+		}
+	protected:
+	public:
+		struct ConveyerArgs {
+			ChassisComponentArgs chassisComponentArgs;
+			std::int8_t conveyerPort;
+		};
+
+		Conveyer(ConveyerArgs args) :
+			ChassisComponent(args.chassisComponentArgs),
+			master(&chassis->getController()),
+			conveyerMotor(args.conveyerPort) {};
+
+		void opControl() {
+			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+				btnLastPressed = true;
+				moveConveyer();
+			} else {
+				if (btnLastPressed) {
+					conveyerMotor.move_velocity(0);
+				}
+				btnLastPressed = false;
+			}
+
+			
+		}
 };
 
 class ConvMech : public ChassisComponent {
