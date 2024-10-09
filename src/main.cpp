@@ -107,7 +107,7 @@ class ChassisComponent {
 		virtual ~ChassisComponent() = default;
 };
 
-class Conveyer: public ChassisComponent {
+class Conveyer : public ChassisComponent {
 	private:
 		pros::Controller* master;
 
