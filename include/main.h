@@ -50,6 +50,9 @@
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+// Options file
+#include "options.h"
+
 // Using declarations
 using std::vector;
 using std::string;

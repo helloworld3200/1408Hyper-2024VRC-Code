@@ -5,35 +5,6 @@
 // added libraries/includes:
 // fmt (header-only)
 
-// Variables (u can change these!!)
-#define DELAY_TIME_MS 20
-// turn on for auton to be run at the start of opcontrol
-#define AUTON_TEST false
-
-#define CURRENT_OPCONTROL mainControl
-
-// Digital sensor port for pneumatics mogo mech
-#define MOGO_MECH_PORT 'A'
-
-//Digital sensor port for pneumatics conveyor lift
-#define CONV_MECH_PORT 'B'
-
-// Motor ports for the conveyer
-#define CONVEYER_PORTS {1, 2}
-
-// Motor ports for the conveyer
-
-// Turn on/off auton and opcontrol
-// Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
-#define DO_AUTON true
-#define DO_OP_CONTROL true
-
-// Ports for the drivetrain motors
-#define LEFT_DRIVE_PORTS {10, 9, 8}
-#define RIGHT_DRIVE_PORTS {20, 19, 18}
-
-#define INIT_CHASSIS initDefaultChassis
-
 // Function declarations
 template <typename T>
 string vectorToString(vector<T>& vec, string delimiter = ", ");
