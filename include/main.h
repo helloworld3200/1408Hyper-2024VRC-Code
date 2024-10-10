@@ -45,6 +45,8 @@
 #include <memory>
 // Perfect forwarding
 #include <utility>
+// Function args
+#include <functional>
 
 // We're using fmt as header-only library to replace std::format
 #define FMT_HEADER_ONLY

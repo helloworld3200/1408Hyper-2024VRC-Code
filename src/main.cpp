@@ -5,6 +5,9 @@
 // added libraries/includes:
 // fmt (header-only)
 
+// currently using legacy toggles (not using Toggle class):
+// convmech, conveyer, mogomech
+
 // Function declarations
 template <typename T>
 string vectorToString(vector<T>& vec, string delimiter = ", ");
@@ -85,6 +88,75 @@ class ChassisComponent {
 		}
 
 		virtual ~ChassisComponent() = default;
+};
+
+/// @brief Class for a toggle on the controller
+class Toggle {
+	private:
+		bool lastPressed = false;
+		bool state;
+
+		pros::Controller* master;
+
+		std::function<void()> offFunc;
+		std::function<void()> onFunc;
+
+		void toggle() {
+			if (state) {
+				offFunc();
+				state = false;
+			} else {
+				onFunc();
+				state = true;
+			}
+		}
+	protected:
+	public:
+		pros::controller_digital_e_t btn;
+
+		/// @brief Args for toggle object
+		/// @param master Controller for robot
+		/// @param btn Button for toggle
+		struct ToggleArgs {
+			pros::Controller* master;
+			pros::controller_digital_e_t btn;
+			std::function<void()> offFunc;
+			std::function<void()> onFunc;
+			bool initialState = false;
+		};
+
+		/// @brief Creates toggle object
+		/// @param args Args for toggle object (check args struct for more info)
+		Toggle(ToggleArgs args) : 
+			master(args.master), 
+			btn(args.btn), 
+			offFunc(args.offFunc),
+			onFunc(args.onFunc),
+			state(args.initialState) {};
+
+		/// @brief Gets the state of the toggle
+		/// @return State of the toggle
+		bool getState() {
+			return state;
+		}
+
+		/// @brief Sets the state of the toggle
+		/// @param newState New state for the toggle
+		void setState(bool newState) {
+			state = newState;
+		}
+
+		/// @brief Run every single loop to check if the button has been pressed
+		void opControl() {
+			if (master->get_digital(btn)) {
+				if (!lastPressed) {
+					toggle();
+				}
+				lastPressed = true;
+			} else {
+				lastPressed = false;
+			}
+		}
 };
 
 class Conveyer : public ChassisComponent {
