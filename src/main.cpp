@@ -65,6 +65,8 @@ class ChassisComponent {
 	private:
 	protected:
 		AbstractChassis* chassis;
+
+		pros::Controller* master;
 	public:
 		/// @brief Args for ChassisComponent object
 		/// @param chassis AbstractChassis derived object to be used for the component
@@ -74,14 +76,19 @@ class ChassisComponent {
 
 		/// @brief Creates ChassisComponent object
 		/// @param args Args ChassisComponent object (check args struct for more info)
-		ChassisComponent(ChassisComponentArgs args) : chassis(args.chassis) {};
+		ChassisComponent(ChassisComponentArgs args) : 
+		chassis(args.chassis),
+		master(&args.chassis->getController()) {};
+
+		AbstractChassis& getChassis() {
+			return *chassis;
+		}
+
 		virtual ~ChassisComponent() = default;
 };
 
 class Conveyer : public ChassisComponent {
 	private:
-		pros::Controller* master;
-
 		pros::MotorGroup conveyerMotors;
 		bool conveyerEngaged = false;
 
@@ -106,7 +113,6 @@ class Conveyer : public ChassisComponent {
 
 		Conveyer(ConveyerArgs args) :
 			ChassisComponent(args.chassisComponentArgs),
-			master(&chassis->getController()),
 			conveyerMotors(args.conveyerPorts) {};
 
 		void opControl() {
@@ -124,8 +130,6 @@ class Conveyer : public ChassisComponent {
 
 class ConvMech : public ChassisComponent {
 	private:
-		pros::Controller* master;
-		
 		pros::ADIDigitalOut piston;
 		bool engaged = false;
 		bool lastPressed = false;
@@ -154,7 +158,6 @@ class ConvMech : public ChassisComponent {
 		/// @param args Args for MogoMech object (check args struct for more info)
 		ConvMech(ConvMechArgs args) : 
 			ChassisComponent(args.chassisComponentArgs),
-			master(&chassis->getController()),
 			piston(args.pistonPort) {};
 
 		void opControl () {
@@ -175,8 +178,6 @@ class ConvMech : public ChassisComponent {
 
 class MogoMech : public ChassisComponent {
 	private:
-		pros::Controller* master;
-		
 		pros::ADIDigitalOut piston;
 		bool engaged = false;
 		bool lastPressed = false;
@@ -205,7 +206,6 @@ class MogoMech : public ChassisComponent {
 		/// @param args Args for MogoMech object (check args struct for more info)
 		MogoMech(MogoMechArgs args) : 
 			ChassisComponent(args.chassisComponentArgs),
-			master(&chassis->getController()),
 			piston(args.pistonPort) {};
 
 		void opControl () {
