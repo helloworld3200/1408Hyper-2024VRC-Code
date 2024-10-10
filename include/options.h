@@ -28,4 +28,5 @@
 #define LEFT_DRIVE_PORTS {10, 9, 8}
 #define RIGHT_DRIVE_PORTS {20, 19, 18}
 
+// Chassis class to use (default is initDefaultChassis)
 #define INIT_CHASSIS initDefaultChassis

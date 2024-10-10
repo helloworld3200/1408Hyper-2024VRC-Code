@@ -93,7 +93,6 @@ class Conveyer : public ChassisComponent {
 		bool conveyerEngaged = false;
 
 		bool btnLastPressed = false;
-		pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_R1;
 
 		void moveConveyer() {
 			if (conveyerEngaged) {
@@ -106,14 +105,18 @@ class Conveyer : public ChassisComponent {
 		}
 	protected:
 	public:
+		pros::controller_digital_e_t btn;
+
 		struct ConveyerArgs {
 			ChassisComponentArgs chassisComponentArgs;
 			vector<std::int8_t> conveyerPorts;
+			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_R1;
 		};
 
 		Conveyer(ConveyerArgs args) :
 			ChassisComponent(args.chassisComponentArgs),
-			conveyerMotors(args.conveyerPorts) {};
+			conveyerMotors(args.conveyerPorts),
+			btn(args.btn) {};
 
 		void opControl() {
 			if (master->get_digital(btn)) {
@@ -199,22 +202,26 @@ class MogoMech : public ChassisComponent {
 		}
 	protected:
 	public:
+		pros::controller_digital_e_t btn;
+
 		/// @brief Args for mogo mech object
 		/// @param chassisComponentArgs Args for ChassisComponent object
 		struct MogoMechArgs {
 			ChassisComponentArgs chassisComponentArgs;
 			char pistonPort;
+			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_A;
 		};
 
 		/// @brief Creates mogo mech object
 		/// @param args Args for MogoMech object (check args struct for more info)
 		MogoMech(MogoMechArgs args) : 
 			ChassisComponent(args.chassisComponentArgs),
-			piston(args.pistonPort) {};
+			piston(args.pistonPort),
+			btn(args.btn) {};
 
 		void opControl () {
 			// Perform the actuation if this is the button has JUST been pressed
-			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
+			if (master->get_digital(btn)) {
 				pneumaticActuation();
 				lastPressed = true;
 				//pros::lcd::set_text(1, "L1 pressed");
