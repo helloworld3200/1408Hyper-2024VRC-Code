@@ -147,22 +147,26 @@ class ConvMech : public ChassisComponent {
 		}
 	protected:
 	public:
+		pros::controller_digital_e_t btn;
+
 		/// @brief Args for mogo mech object
 		/// @param chassisComponentArgs Args for ChassisComponent object
 		struct ConvMechArgs {
 			ChassisComponentArgs chassisComponentArgs;
 			char pistonPort;
+			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_B;
 		};
 
 		/// @brief Creates mogo mech object
 		/// @param args Args for MogoMech object (check args struct for more info)
 		ConvMech(ConvMechArgs args) : 
 			ChassisComponent(args.chassisComponentArgs),
-			piston(args.pistonPort) {};
+			piston(args.pistonPort),
+			btn(args.btn) {};
 
 		void opControl () {
 			// Perform the actuation if this is the button has JUST been pressed
-			if (master->get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
+			if (master->get_digital(btn)) {
 				pneumaticActuation();
 				lastPressed = true;
 				//pros::lcd::set_text(1, "L1 pressed");
