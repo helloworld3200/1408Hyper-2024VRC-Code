@@ -5,6 +5,8 @@
 // added libraries/includes:
 // fmt (header-only)
 
+// ending in -mech classes are for pneumatics
+
 // currently using legacy toggles (not using Toggle class):
 // convmech, conveyer, mogomech
 
