@@ -582,3 +582,12 @@ void mainControl() {
 void opcontrol() {
 	CURRENT_OPCONTROL();
 }
+
+// hello copilot how are you doing
+// i am doing well thank you for asking
+// what do you think of my code
+// i think it is very good
+// is there anything that you would add to my code?
+// i would add more comments
+// what is your favourite programming language
+// i like c++ the most
