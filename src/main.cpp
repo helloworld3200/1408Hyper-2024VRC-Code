@@ -100,21 +100,24 @@ class Toggle {
 
 		pros::Controller* master;
 
-		std::function<void()> offFunc;
-		std::function<void()> onFunc;
-
 		void toggle() {
 			if (state) {
-				offFunc();
+				funcs.offFunc();
 				state = false;
 			} else {
-				onFunc();
+				funcs.onFunc();
 				state = true;
 			}
 		}
 	protected:
 	public:
-		pros::controller_digital_e_t btn;
+		/// @brief Struct for functions for toggle object
+		/// @param offFunc Function to toggle off
+		/// @param onFunc Function to toggle on
+		struct ToggleFuncs {
+			std::function<void()> offFunc;
+			std::function<void()> onFunc;
+		};
 
 		/// @brief Args for toggle object
 		/// @param master Controller for robot
@@ -122,18 +125,20 @@ class Toggle {
 		struct ToggleArgs {
 			pros::Controller* master;
 			pros::controller_digital_e_t btn;
-			std::function<void()> offFunc;
-			std::function<void()> onFunc;
+			ToggleFuncs funcs;
 			bool initialState = false;
 		};
+
+		pros::controller_digital_e_t btn;
+
+		ToggleFuncs funcs;
 
 		/// @brief Creates toggle object
 		/// @param args Args for toggle object (check args struct for more info)
 		Toggle(ToggleArgs args) : 
 			master(args.master), 
 			btn(args.btn), 
-			offFunc(args.offFunc),
-			onFunc(args.onFunc),
+			funcs(args.funcs),
 			state(args.initialState) {};
 
 		/// @brief Gets the state of the toggle
@@ -337,6 +342,7 @@ class Auton : public ChassisComponent {
 /// @brief Chassis class for controlling auton/driver control
 class Chassis : public AbstractChassis {
 	private:
+	protected:
 	public:
 		/// @brief Enum for different driver control modes
 		enum class OpControlMode {
