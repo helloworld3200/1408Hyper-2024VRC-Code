@@ -65,7 +65,7 @@ namespace hyper {
 
 			virtual void opControl() = 0;
 			virtual void auton() = 0;
-	};
+	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
 	class ChassisComponent {
@@ -92,7 +92,7 @@ namespace hyper {
 			}
 
 			virtual ~ChassisComponent() = default;
-	};
+	}; // class ChassisComponent
 
 	/// @brief Class for a toggle on the controller
 	class Toggle {
@@ -166,7 +166,7 @@ namespace hyper {
 					lastPressed = false;
 				}
 			}
-	};
+	}; // class Toggle
 
 	class Conveyer : public ChassisComponent {
 		private:
@@ -210,7 +210,7 @@ namespace hyper {
 					btnLastPressed = false;
 				}
 			}
-	};
+	}; // class Conveyer
 
 	class ConvMech : public ChassisComponent {
 		private:
@@ -262,7 +262,7 @@ namespace hyper {
 			pros::ADIDigitalOut& getPiston() {
 				return piston;
 			}
-	};
+	}; // class ConvMech
 
 	class MogoMech : public ChassisComponent {
 		private:
@@ -314,7 +314,7 @@ namespace hyper {
 			pros::ADIDigitalOut& getPiston() {
 				return piston;
 			}
-	};
+	}; // class MogoMech
 
 	/// @brief Main auton class
 	class Auton : public ChassisComponent {
@@ -339,7 +339,7 @@ namespace hyper {
 				// TODO: Implement auton
 				
 			};
-	};
+	}; // class Auton
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
@@ -429,7 +429,7 @@ namespace hyper {
 			void auton() override {
 				autonController.go();
 			}
-	};
+	}; // class Chassis
 
 	/// @brief Convert vector of ints to string. For displaying on the LCD/debugging
 	/// @param vec Vector to convert
@@ -451,7 +451,7 @@ namespace hyper {
 
 		return oss.str();
 	}
-}
+} // namespace hyper
 
 // Global variables
 
