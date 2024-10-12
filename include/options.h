@@ -1,5 +1,7 @@
 // All the options for the robot
-// (experimental)
+
+#ifndef _HYPER_OPTIONS_H_
+#define _HYPER_OPTIONS_H_
 
 // Variables (u can change these!!)
 #define DELAY_TIME_MS 20
@@ -30,3 +32,5 @@
 
 // Chassis class to use (default is initDefaultChassis)
 #define INIT_CHASSIS initDefaultChassis
+
+#endif // _HYPER_OPTIONS_H_
