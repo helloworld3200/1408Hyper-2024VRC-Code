@@ -387,12 +387,12 @@ namespace hyper {
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) : 
-			AbstractChassis(args.abstractChassisArgs), 
-			opControlMode(args.opControlMode), 
-			opControlSpeed(args.opControlSpeed), 
-			autonController({this}),
-			mogoMech({this, args.mogoMechPort}),
-			conveyer({this, args.conveyerPorts}) {};
+				AbstractChassis(args.abstractChassisArgs), 
+				opControlMode(args.opControlMode), 
+				opControlSpeed(args.opControlSpeed), 
+				autonController({this}), 
+				mogoMech({this, args.mogoMechPort}), 
+				conveyer({this, args.conveyerPorts}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
