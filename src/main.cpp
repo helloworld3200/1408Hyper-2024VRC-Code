@@ -214,7 +214,7 @@ namespace hyper {
 
 	class ConvMech : public ChassisComponent {
 		private:
-			pros::ADIDigitalOut piston;
+			pros::adi::DigitalOut piston;
 			bool engaged = false;
 			bool lastPressed = false;
 
@@ -259,14 +259,14 @@ namespace hyper {
 				}
 			}
 
-			pros::ADIDigitalOut& getPiston() {
+			pros::adi::DigitalOut& getPiston() {
 				return piston;
 			}
 	}; // class ConvMech
 
 	class MogoMech : public ChassisComponent {
 		private:
-			pros::ADIDigitalOut piston;
+			pros::adi::DigitalOut piston;
 			bool engaged = false;
 			bool lastPressed = false;
 
@@ -311,7 +311,7 @@ namespace hyper {
 				}
 			}
 
-			pros::ADIDigitalOut& getPiston() {
+			pros::adi::DigitalOut& getPiston() {
 				return piston;
 			}
 	}; // class MogoMech
