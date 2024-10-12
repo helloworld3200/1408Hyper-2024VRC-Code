@@ -405,7 +405,7 @@ namespace hyper {
 						arcadeControl();
 						break;
 					default:
-						arcadeControl();
+						fallbackControl();
 						break;
 				}
 			}
@@ -423,6 +423,11 @@ namespace hyper {
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
+			}
+
+			/// @brief Fallback control that OpControlMode switch statement defaults to.
+			void fallbackControl() {
+				arcadeControl();
 			}
 
 			/// @brief Auton function for the chassis
