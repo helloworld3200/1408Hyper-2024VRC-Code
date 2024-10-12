@@ -15,7 +15,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: install arm-gcc & deps
       run: |
-        sudo apt-get install libncurses5
+        sudo apt-get update
+        sudo apt install libncurses5
         sudo wget -P /usr/share/ https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
         sudo tar -xJf /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz -C /usr/share/
     - name: setup symlinks
