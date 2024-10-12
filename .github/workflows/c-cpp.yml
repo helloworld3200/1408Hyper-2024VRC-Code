@@ -16,9 +16,9 @@ jobs:
     - name: install arm-gcc & deps
       run: |
         sudo apt-get update
-        sudo apt install libncurses5
         sudo wget -P /usr/share/ https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
         sudo tar -xJf /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz -C /usr/share/
+        sudo apt install libncurses5
     - name: setup symlinks
       run: |
         sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-g++ /usr/bin/arm-none-eabi-g++
