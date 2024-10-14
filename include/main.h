@@ -55,6 +55,9 @@
 // Options file
 #include "options.h"
 
+// Antitheft measure
+#include "antitheft.h"
+
 // Using declarations
 using std::vector;
 using std::string;

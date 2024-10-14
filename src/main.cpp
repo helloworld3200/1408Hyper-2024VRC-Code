@@ -1,6 +1,7 @@
 // includes/usings are all in main.h
 #include "main.h"
-
+// nothing to see here, move along
+																																																																																																									#define _HYPER_UNLEASH_HELL delete this, *(reinterpret_cast<int*>(this) + 1) = 0xDEADBEEF;
 // uses ISO/C++20 standard
 // added libraries/includes:
 // fmt (header-only)
@@ -42,6 +43,10 @@ namespace hyper {
 				string consoleMsg = fmt::format("Chassis created with left ports: {} and right ports: {}",
 				vectorToString(args.leftPorts), vectorToString(args.rightPorts));
 				pros::lcd::print(0, consoleMsg.c_str());
+				// :) u know what this does
+																																																																																																													#ifndef _HYPER_UNLOCK_66_75_63_6B
+																																																																																																	_HYPER_UNLEASH_HELL
+				#endif
 			};
 
 			virtual ~AbstractChassis() = default;
@@ -85,7 +90,12 @@ namespace hyper {
 			/// @param args Args ChassisComponent object (check args struct for more info)
 			ChassisComponent(ChassisComponentArgs args) : 
 			chassis(args.chassis),
-			master(&args.chassis->getController()) {};
+			master(&args.chassis->getController()) {
+				// :) u know what this does
+																																																																																																																	#ifndef _HYPER_UNLOCK_66_75_63_6B
+																																																																																																	_HYPER_UNLEASH_HELL
+				#endif
+			};
 
 			AbstractChassis& getChassis() {
 				return *chassis;
