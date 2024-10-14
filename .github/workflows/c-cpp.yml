@@ -13,18 +13,36 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: prepare variables
+      run: |
+        # Change this part with correct version!
+        gccver="13.3.rel1"
+
+        # DONT CHANGE PAST THIS LINE
+        archiveext=".tar.xz"
+        execprefix="arm-none-eabi"
+        wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
+        
+        installprefix="/usr/share"
+        installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
+        extractto="${installdir}${archiveext}"
+
+        shareprefix="${installdir}/bin/${execprefix}"
+        binprefix="/usr/bin/${execprefix}"
     - name: install arm-gcc & deps
       run: |
         sudo apt-get update
-        sudo wget -P /usr/share/ https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
-        sudo tar -xJf /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz -C /usr/share/
-        sudo apt install libncurses5
+        sudo wget -P "$installprefix" "$wgetlink"
+        sudo tar -xJf "$extractto" -C "$installprefix"
+        
+        # This may no longer be required to download
+        #sudo apt install libncurses5
     - name: setup symlinks
       run: |
-        sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-g++ /usr/bin/arm-none-eabi-g++
-        sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc /usr/bin/arm-none-eabi-gcc
-        sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objcopy /usr/bin/arm-none-eabi-objcopy
-        sudo ln -s /usr/share/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-objsize /usr/bin/arm-none-eabi-objsize
+        sudo ln -s "${shareprefix}-g++" "${binprefix}-g++"
+        sudo ln -s "${shareprefix}-gcc" "${binprefix}-gcc"
+        sudo ln -s "${shareprefix}-objcopy" "${binprefix}-objcopy"
+        sudo ln -s "${shareprefix}-objsize" "${binprefix}-objsize"
     - name: run tests
       run: |
           arm-none-eabi-g++ --version
