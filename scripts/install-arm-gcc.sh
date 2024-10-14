@@ -1,3 +1,7 @@
+# I'm 99% sure this is totally broken and doesn't work, but I'm keeping it here for reference
+# Isn't really needed to be updated so I'm not going to bother fixing it
+# Also we use PROS anyway lol
+
 # Install ARM GCC toolchain (arm-none-eabi-gcc/g++) on linux
 # can be used for CI testing or CodeQL, for final build use PROS
 # MUST BE RUN WITH SUDO
@@ -31,7 +35,7 @@ sudo apt install libncurses5
 sudo wget -P $install_path https://developer.arm.com/-/media/Files/downloads/gnu/$install_version/binrel/arm-gnu-toolchain-$install_version-x86_64-arm-none-eabi.tar.xz
 sudo tar -xJf /usr/share/arm-gnu-toolchain-$install_version-x86_64-arm-none-eabi.tar.xz -C $install_path
 
-install_bin_dir = $install_path/arm-gnu-toolchain-$install_version-x86_64-arm-none-eabi/bin
+install_bin_dir=$install_path/arm-gnu-toolchain-$install_version-x86_64-arm-none-eabi/bin
 echo "Extracted toolchain binaries to $install_bin_dir"
 
 # Setup symlinks
