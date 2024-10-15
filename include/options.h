@@ -11,13 +11,13 @@
 #define CURRENT_OPCONTROL mainControl
 
 // Digital sensor port for pneumatics mogo mech
-#define MOGO_MECH_PORT 'A'
+#define MOGO_MECH_PORT 'B'
 
 //Digital sensor port for pneumatics conveyor lift
-#define CONV_MECH_PORT 'B'
+#define LIFT_MECH_PORT 'A'
 
 // Motor ports for the conveyer
-#define CONVEYER_PORTS {11, -12}
+#define CONVEYER_PORTS {11, 19}
 
 // Motor ports for the conveyer
 

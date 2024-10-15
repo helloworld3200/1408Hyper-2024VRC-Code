@@ -9,7 +9,16 @@
 // ending in -mech classes are for pneumatics
 
 // currently using legacy toggles (not using Toggle class):
-// convmech, conveyer, mogomech
+// liftmech, conveyer, mogomech
+
+// TODO: Refactor ChassisComponent into abstract class, then
+// iterate over array of components running opControl for each.
+// (Auton will no longer be ChassisComponent)
+
+// TODO: Create swith class for controls with 2 states
+
+// TODO: Refactor static options (variables with no need to init)
+// into new struct for each class so no need to redeclare.
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
@@ -181,11 +190,11 @@ namespace hyper {
 	class Conveyer : public ChassisComponent {
 		private:
 			pros::MotorGroup conveyerMotors;
-			bool conveyerEngaged = false;
+			//bool conveyerEngaged = false;
 
-			bool btnLastPressed = false;
+			//bool btnLastPressed = false;
 
-			void moveConveyer() {
+			/*void moveConveyer() {
 				if (conveyerEngaged) {
 					conveyerMotors.move_velocity(0);
 					conveyerEngaged = false;
@@ -193,42 +202,46 @@ namespace hyper {
 					conveyerMotors.move_velocity(200);
 					conveyerEngaged = true;
 				}
-			}
+			}*/
 		protected:
 		public:
-			pros::controller_digital_e_t btn;
+			pros::controller_digital_e_t onBtn;
+			pros::controller_digital_e_t offBtn;
+
+			int conveyerSpeed;
 
 			struct ConveyerArgs {
 				ChassisComponentArgs chassisComponentArgs;
 				vector<std::int8_t> conveyerPorts;
-				pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_R1;
+				pros::controller_digital_e_t onBtn = pros::E_CONTROLLER_DIGITAL_R1;
+				pros::controller_digital_e_t offBtn = pros::E_CONTROLLER_DIGITAL_R2;
+				int conveyerSpeed = 200;
 			};
 
 			Conveyer(ConveyerArgs args) :
 				ChassisComponent(args.chassisComponentArgs),
 				conveyerMotors(args.conveyerPorts),
-				btn(args.btn) {};
+				onBtn(args.onBtn),
+				offBtn(args.offBtn),
+				conveyerSpeed(args.conveyerSpeed) {};
 
 			void opControl() {
-				if (master->get_digital(btn)) {
-					if (!btnLastPressed) {
-						moveConveyer();
-					}
-
-					btnLastPressed = true;
-				} else {
-					btnLastPressed = false;
+				if (master->get_digital(onBtn)) {
+					conveyerMotors.move_velocity(conveyerSpeed);
+					//pros::lcd::set_text(1, "L1 pressed");
+				} else if (master->get_digital(offBtn)) {
+					conveyerMotors.move_velocity(0);
 				}
 			}
 	}; // class Conveyer
 
-	class ConvMech : public ChassisComponent {
+	class LiftMech : public ChassisComponent {
 		private:
 			pros::adi::DigitalOut piston;
-			bool engaged = false;
-			bool lastPressed = false;
+			//bool engaged = false;
+			//bool lastPressed = false;
 
-			void pneumaticActuation() {
+			/*void pneumaticActuation() {
 				if (!lastPressed) {
 					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
 					engaged = !engaged;
@@ -238,41 +251,43 @@ namespace hyper {
 						piston.set_value(false);
 					}
 				}
-			}
+			}*/
 		protected:
 		public:
-			pros::controller_digital_e_t btn;
+			pros::controller_digital_e_t btnOn;
+			pros::controller_digital_e_t btnOff;
 
 			/// @brief Args for mogo mech object
 			/// @param chassisComponentArgs Args for ChassisComponent object
-			struct ConvMechArgs {
+			struct LiftMechArgs {
 				ChassisComponentArgs chassisComponentArgs;
 				char pistonPort;
-				pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_B;
+				pros::controller_digital_e_t btnOn = pros::E_CONTROLLER_DIGITAL_UP;
+				pros::controller_digital_e_t btnOff = pros::E_CONTROLLER_DIGITAL_DOWN;
 			};
 
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
-			ConvMech(ConvMechArgs args) : 
+			LiftMech(LiftMechArgs args) : 
 				ChassisComponent(args.chassisComponentArgs),
 				piston(args.pistonPort),
-				btn(args.btn) {};
+				btnOn(args.btnOn),
+				btnOff(args.btnOff) {};
 
 			void opControl () {
 				// Perform the actuation if this is the button has JUST been pressed
-				if (master->get_digital(btn)) {
-					pneumaticActuation();
-					lastPressed = true;
+				if (master->get_digital(btnOn)) {
+					piston.set_value(true);
 					//pros::lcd::set_text(1, "L1 pressed");
-				} else {
-					lastPressed = false;
+				} else if (master->get_digital(btnOff)) {
+					piston.set_value(false);
 				}
 			}
 
 			pros::adi::DigitalOut& getPiston() {
 				return piston;
 			}
-	}; // class ConvMech
+	}; // class LiftMech
 
 	class MogoMech : public ChassisComponent {
 		private:
@@ -379,6 +394,7 @@ namespace hyper {
 			struct ChassisArgs {
 				AbstractChassisArgs abstractChassisArgs;
 				char mogoMechPort;
+				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
 				OpControlSpeed opControlSpeed = {};
 				OpControlMode opControlMode = OpControlMode::ARCADE;
@@ -391,7 +407,7 @@ namespace hyper {
 			Auton autonController;
 
 			MogoMech mogoMech;
-			
+			LiftMech liftMech;
 			Conveyer conveyer;
 
 			/// @brief Creates chassis object
@@ -402,13 +418,20 @@ namespace hyper {
 				opControlSpeed(args.opControlSpeed), 
 				autonController({this}), 
 				mogoMech({this, args.mogoMechPort}), 
-				conveyer({this, args.conveyerPorts}) {};
+				conveyer({this, args.conveyerPorts}),
+				liftMech({this, args.liftMechPort}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
-				// Run the mainloop for the mogo mech
+				// Run the mainloop for additional components
+				// TODO: Refactor ChassisComponent into abstract class, then
+				// iterate over array of components running opControl for each.
+				// (Auton will no longer be ChassisComponent)
 				mogoMech.opControl();
+				liftMech.opControl();
+
+				conveyer.opControl();
 
 				switch (opControlMode) {
 					case OpControlMode::ARCADE:
@@ -483,7 +506,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({{
 		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
-	}, MOGO_MECH_PORT, CONVEYER_PORTS});
+	}, MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
 	currentChassis = &defaultChassis;
 }
 
