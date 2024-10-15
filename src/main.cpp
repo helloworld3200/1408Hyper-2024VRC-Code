@@ -43,10 +43,10 @@ namespace hyper {
 				string consoleMsg = fmt::format("Chassis created with left ports: {} and right ports: {}",
 				vectorToString(args.leftPorts), vectorToString(args.rightPorts));
 				pros::lcd::print(0, consoleMsg.c_str());
-				// :) u know what this does
-																																																																																																													#ifndef _HYPER_UNLOCK_66_75_63_6B
-																																																																																																	_HYPER_UNLEASH_HELL
-				#endif
+																																																																														// :) u know what this does
+																																																																														#ifndef _HYPER_UNLOCK_66_75_63_6B
+																																																																															_HYPER_UNLEASH_HELL
+																																																																														#endif
 			};
 
 			virtual ~AbstractChassis() = default;
@@ -92,9 +92,9 @@ namespace hyper {
 			chassis(args.chassis),
 			master(&args.chassis->getController()) {
 				// :) u know what this does
-																																																																																																																	#ifndef _HYPER_UNLOCK_66_75_63_6B
-																																																																																																	_HYPER_UNLEASH_HELL
-				#endif
+																																																																																			#ifndef _HYPER_UNLOCK_66_75_63_6B
+																																																																																				_HYPER_UNLEASH_HELL
+																																																																																			#endif
 			};
 
 			AbstractChassis& getChassis() {
