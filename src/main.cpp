@@ -16,10 +16,13 @@
 // easier than manually calling each component's opControl/constructor
 // NO LONGER ISSUE FOR AUTON CUZ IT IS NOW NOT DERIVING FROM CHASSISCOMPONENT
 
-// TODO: Create swith class for controls with 2 states
-
 // TODO: Refactor static options (variables with no need to init)
 // into new struct for each class so no need to redeclare.
+// THIS HAS A NEW CONSEQUENCE (SEE BELOW)
+
+// TODO: Basic structs in each class for buttons/speeds (mainly for components)
+
+// so much DRY violations >:((((( need more classes!!!!!
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
@@ -118,17 +121,16 @@ namespace hyper {
 	class Toggle {
 		private:
 			bool lastPressed = false;
-			bool state;
 
 			pros::Controller* master;
 
 			void toggle() {
-				if (state) {
-					funcs.offFunc();
-					state = false;
+				if (st.state) {
+					st.funcs.offFunc();
+					st.state = false;
 				} else {
-					funcs.onFunc();
-					state = true;
+					st.funcs.onFunc();
+					st.state = true;
 				}
 			}
 		protected:
@@ -141,43 +143,35 @@ namespace hyper {
 				std::function<void()> onFunc;
 			};
 
-			/// @brief Args for toggle object
-			/// @param master Controller for robot
+			/// @brief Static options for toggle object
 			/// @param btn Button for toggle
-			struct ToggleArgs {
-				pros::Controller* master;
+			/// @param funcs Functions for toggle
+			/// @param state Initial state for toggle
+			struct StaticOptions {
 				pros::controller_digital_e_t btn;
 				ToggleFuncs funcs;
-				bool initialState = false;
+				bool state = false;
 			};
 
-			pros::controller_digital_e_t btn;
+			/// @brief Args for toggle object
+			/// @param master Controller for robot
+			/// @param st Static options for toggle object
+			struct ToggleArgs {
+				pros::Controller* master;
+				StaticOptions st;
+			};
 
-			ToggleFuncs funcs;
+			StaticOptions st;
 
 			/// @brief Creates toggle object
 			/// @param args Args for toggle object (check args struct for more info)
 			Toggle(ToggleArgs args) : 
 				master(args.master), 
-				btn(args.btn), 
-				funcs(args.funcs),
-				state(args.initialState) {};
-
-			/// @brief Gets the state of the toggle
-			/// @return State of the toggle
-			bool getState() {
-				return state;
-			}
-
-			/// @brief Sets the state of the toggle
-			/// @param newState New state for the toggle
-			void setState(bool newState) {
-				state = newState;
-			}
+				st(args.st) {};
 
 			/// @brief Run every single loop to check if the button has been pressed
 			void opControl() {
-				if (master->get_digital(btn)) {
+				if (master->get_digital(st.btn)) {
 					if (!lastPressed) {
 						toggle();
 					}
@@ -206,34 +200,34 @@ namespace hyper {
 			}*/
 		protected:
 		public:
-			pros::controller_digital_e_t onBtn;
-			pros::controller_digital_e_t offBtn;
-
-			int forwardSpeed;
-			int backSpeed;
 			struct ConveyerArgs {
 				ChassisComponentArgs chassisComponentArgs;
 				vector<std::int8_t> conveyerPorts;
-				pros::controller_digital_e_t onBtn = pros::E_CONTROLLER_DIGITAL_L1;
-				pros::controller_digital_e_t offBtn = pros::E_CONTROLLER_DIGITAL_L2;
-				int forwardSpeed = 200;
-				int backSpeed = -200;
 			};
+
+			struct Speeds {
+				int fwd = 200;
+				int back = -200;
+			};
+
+			struct Buttons {
+				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_L1;
+				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_L2;
+			};
+
+			Speeds speeds = {};
+			Buttons btns = {};
 
 			Conveyer(ConveyerArgs args) :
 				ChassisComponent(args.chassisComponentArgs),
-				conveyerMotors(args.conveyerPorts),
-				onBtn(args.onBtn),
-				offBtn(args.offBtn),
-				forwardSpeed(args.forwardSpeed),
-				backSpeed(args.backSpeed) {};
+				conveyerMotors(args.conveyerPorts) {};
 
 			void move(bool on, bool directionForward = true) {
 				if (on) {
 					if (directionForward) {
-						conveyerMotors.move_velocity(forwardSpeed);
+						conveyerMotors.move_velocity(speeds.fwd);
 					} else {
-						conveyerMotors.move_velocity(backSpeed);
+						conveyerMotors.move_velocity(speeds.back);
 					}
 				} else {
 					conveyerMotors.move_velocity(0);
@@ -241,9 +235,9 @@ namespace hyper {
 			}
 
 			void opControl() {
-				if (master->get_digital(onBtn)) {
+				if (master->get_digital(btns.on)) {
 					move(true);
-				} else if (master->get_digital(offBtn)) {
+				} else if (master->get_digital(btns.off)) {
 					move(true, false);
 				} else {
 					move(false);
@@ -270,36 +264,40 @@ namespace hyper {
 			}*/
 		protected:
 		public:
-			pros::controller_digital_e_t btnOn;
-			pros::controller_digital_e_t btnOff;
-
 			/// @brief Args for mogo mech object
 			/// @param chassisComponentArgs Args for ChassisComponent object
 			struct LiftMechArgs {
 				ChassisComponentArgs chassisComponentArgs;
 				char pistonPort;
-				pros::controller_digital_e_t btnOn = pros::E_CONTROLLER_DIGITAL_UP;
-				pros::controller_digital_e_t btnOff = pros::E_CONTROLLER_DIGITAL_DOWN;
 			};
+
+			/// @brief Struct for buttons for lift mech object
+			/// @param on Button to turn on lift mech
+			/// @param off Button to turn off lift mech
+			struct Buttons {
+				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_UP;
+				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_DOWN;
+			};
+
+			Buttons btns = {};
 
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			LiftMech(LiftMechArgs args) : 
 				ChassisComponent(args.chassisComponentArgs),
-				piston(args.pistonPort),
-				btnOn(args.btnOn),
-				btnOff(args.btnOff) {};
+				piston(args.pistonPort) {};
 
 			void opControl () {
 				// Perform the actuation if this is the button has JUST been pressed
-				if (master->get_digital(btnOn)) {
+				if (master->get_digital(btns.on)) {
 					piston.set_value(true);
 					//pros::lcd::set_text(1, "L1 pressed");
-				} else if (master->get_digital(btnOff)) {
+				} else if (master->get_digital(btns.off)) {
 					piston.set_value(false);
 				}
 			}
 
+			/// @brief Gets the piston object 
 			pros::adi::DigitalOut& getPiston() {
 				return piston;
 			}
@@ -324,22 +322,20 @@ namespace hyper {
 			}
 		protected:
 		public:
-			pros::controller_digital_e_t btn;
+			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_A;
 
 			/// @brief Args for mogo mech object
 			/// @param chassisComponentArgs Args for ChassisComponent object
 			struct MogoMechArgs {
 				ChassisComponentArgs chassisComponentArgs;
 				char pistonPort;
-				pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_A;
 			};
 
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			MogoMech(MogoMechArgs args) : 
 				ChassisComponent(args.chassisComponentArgs),
-				piston(args.pistonPort),
-				btn(args.btn) {};
+				piston(args.pistonPort) {};
 
 			void opControl () {
 				// Perform the actuation if this is the button has JUST been pressed
@@ -363,20 +359,12 @@ namespace hyper {
 			Chassis* chassis;
 		protected:
 		public:
-			/// @brief Args for auton object
-			/// @param chassisComponentArgs Args for ChassisComponent object
-			/// @param speed Speed for auton control
-			struct AutonArgs {
-				Chassis* chassis;
-				int speed = 100;
-			};
-
-			int speed;
+			int speed = 100;
 
 			/// @brief Creates auton object
 			/// @param args Args for ChassisComponent object (check args struct for more info)
-			Auton(AutonArgs args) : 
-				chassis(args.chassis), speed(args.speed) {};
+			Auton(Chassis* chassis) : 
+				chassis(chassis) {};
 
 			void go() {
 				// TODO: Implement auton
@@ -414,29 +402,25 @@ namespace hyper {
 				char mogoMechPort;
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
-				OpControlSpeed opControlSpeed = {};
-				OpControlMode opControlMode = OpControlMode::ARCADE;
-				int autonSpeed = 100;
 			};
 
-			OpControlMode opControlMode;
-			OpControlSpeed opControlSpeed;
+			OpControlMode opControlMode = OpControlMode::ARCADE;
+			OpControlSpeed opControlSpeed = {};
 
 			Auton autonController;
 
 			MogoMech mogoMech;
 			LiftMech liftMech;
+			
 			Conveyer conveyer;
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) : 
 				AbstractChassis(args.abstractChassisArgs), 
-				opControlMode(args.opControlMode), 
-				opControlSpeed(args.opControlSpeed), 
-				autonController({this}), 
+				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
-				conveyer({this, args.conveyerPorts}),
+				conveyer({this, args.conveyerPorts}), 
 				liftMech({this, args.liftMechPort}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
