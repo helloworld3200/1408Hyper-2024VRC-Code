@@ -208,14 +208,15 @@ namespace hyper {
 			pros::controller_digital_e_t onBtn;
 			pros::controller_digital_e_t offBtn;
 
-			int conveyerSpeed;
-
+			int forwardSpeed;
+			int backSpeed;
 			struct ConveyerArgs {
 				ChassisComponentArgs chassisComponentArgs;
 				vector<std::int8_t> conveyerPorts;
-				pros::controller_digital_e_t onBtn = pros::E_CONTROLLER_DIGITAL_R1;
-				pros::controller_digital_e_t offBtn = pros::E_CONTROLLER_DIGITAL_R2;
-				int conveyerSpeed = 200;
+				pros::controller_digital_e_t onBtn = pros::E_CONTROLLER_DIGITAL_L1;
+				pros::controller_digital_e_t offBtn = pros::E_CONTROLLER_DIGITAL_L2;
+				int forwardSpeed = 200;
+				int backSpeed = -200;
 			};
 
 			Conveyer(ConveyerArgs args) :
@@ -223,14 +224,28 @@ namespace hyper {
 				conveyerMotors(args.conveyerPorts),
 				onBtn(args.onBtn),
 				offBtn(args.offBtn),
-				conveyerSpeed(args.conveyerSpeed) {};
+				forwardSpeed(args.forwardSpeed),
+				backSpeed(args.backSpeed) {};
+
+			void move(bool on, bool directionForward = true) {
+				if (on) {
+					if (directionForward) {
+						conveyerMotors.move_velocity(forwardSpeed);
+					} else {
+						conveyerMotors.move_velocity(backSpeed);
+					}
+				} else {
+					conveyerMotors.move_velocity(0);
+				}
+			}
 
 			void opControl() {
 				if (master->get_digital(onBtn)) {
-					conveyerMotors.move_velocity(conveyerSpeed);
-					//pros::lcd::set_text(1, "L1 pressed");
+					move(true);
 				} else if (master->get_digital(offBtn)) {
-					conveyerMotors.move_velocity(0);
+					move(true, false);
+				} else {
+					move(false);
 				}
 			}
 	}; // class Conveyer
