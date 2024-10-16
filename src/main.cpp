@@ -86,22 +86,22 @@ namespace hyper {
 	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
-	class ChassisComponent {
+	class AbstractComponent {
 		private:
 		protected:
 			AbstractChassis* chassis;
 
 			pros::Controller* master;
 		public:
-			/// @brief Args for ChassisComponent object
+			/// @brief Args for AbstractComponent object
 			/// @param chassis AbstractChassis derived object to be used for the component
-			struct ChassisComponentArgs {
+			struct AbstractComponentArgs {
 				AbstractChassis* chassis;
 			};
 
-			/// @brief Creates ChassisComponent object
-			/// @param args Args ChassisComponent object (check args struct for more info)
-			ChassisComponent(ChassisComponentArgs args) : 
+			/// @brief Creates AbstractComponent object
+			/// @param args Args AbstractComponent object (check args struct for more info)
+			AbstractComponent(AbstractComponentArgs args) : 
 			chassis(args.chassis),
 			master(&args.chassis->getController()) {
 				// :) u know what this does
@@ -114,7 +114,9 @@ namespace hyper {
 				return *chassis;
 			}
 
-			virtual ~ChassisComponent() = default;
+			virtual void opControl() = 0;
+
+			virtual ~AbstractComponent() = default;
 	}; // class ChassisComponent
 
 	/// @brief Class for a toggle on the controller
@@ -182,7 +184,7 @@ namespace hyper {
 			}
 	}; // class Toggle
 
-	class Conveyer : public ChassisComponent {
+	class Conveyer : public AbstractComponent {
 		private:
 			pros::MotorGroup conveyerMotors;
 			//bool conveyerEngaged = false;
@@ -200,8 +202,11 @@ namespace hyper {
 			}*/
 		protected:
 		public:
+			/// @brief Args for conveyer object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param conveyerPorts Vector of ports for conveyer motors
 			struct ConveyerArgs {
-				ChassisComponentArgs chassisComponentArgs;
+				AbstractComponentArgs abstractComponentArgs;
 				vector<std::int8_t> conveyerPorts;
 			};
 
@@ -219,7 +224,7 @@ namespace hyper {
 			Buttons btns = {};
 
 			Conveyer(ConveyerArgs args) :
-				ChassisComponent(args.chassisComponentArgs),
+				AbstractComponent(args.abstractComponentArgs),
 				conveyerMotors(args.conveyerPorts) {};
 
 			void move(bool on, bool directionForward = true) {
@@ -234,7 +239,7 @@ namespace hyper {
 				}
 			}
 
-			void opControl() {
+			void opControl() override {
 				if (master->get_digital(btns.on)) {
 					move(true);
 				} else if (master->get_digital(btns.off)) {
@@ -245,7 +250,7 @@ namespace hyper {
 			}
 	}; // class Conveyer
 
-	class LiftMech : public ChassisComponent {
+	class LiftMech : public AbstractComponent {
 		private:
 			pros::adi::DigitalOut piston;
 			//bool engaged = false;
@@ -265,9 +270,9 @@ namespace hyper {
 		protected:
 		public:
 			/// @brief Args for mogo mech object
-			/// @param chassisComponentArgs Args for ChassisComponent object
+			/// @param abstractComponentArgs Args for AbstractComponent object
 			struct LiftMechArgs {
-				ChassisComponentArgs chassisComponentArgs;
+				AbstractComponentArgs abstractComponentArgs;
 				char pistonPort;
 			};
 
@@ -284,10 +289,10 @@ namespace hyper {
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			LiftMech(LiftMechArgs args) : 
-				ChassisComponent(args.chassisComponentArgs),
+				AbstractComponent(args.abstractComponentArgs),
 				piston(args.pistonPort) {};
 
-			void opControl () {
+			void opControl () override {
 				// Perform the actuation if this is the button has JUST been pressed
 				if (master->get_digital(btns.on)) {
 					piston.set_value(true);
@@ -303,7 +308,7 @@ namespace hyper {
 			}
 	}; // class LiftMech
 
-	class MogoMech : public ChassisComponent {
+	class MogoMech : public AbstractComponent {
 		private:
 			pros::adi::DigitalOut piston;
 			bool engaged = false;
@@ -325,19 +330,19 @@ namespace hyper {
 			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_A;
 
 			/// @brief Args for mogo mech object
-			/// @param chassisComponentArgs Args for ChassisComponent object
+			/// @param abstractComponentArgs Args for AbstractComponent object
 			struct MogoMechArgs {
-				ChassisComponentArgs chassisComponentArgs;
+				AbstractComponentArgs abstractComponentArgs;
 				char pistonPort;
 			};
 
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			MogoMech(MogoMechArgs args) : 
-				ChassisComponent(args.chassisComponentArgs),
+				AbstractComponent(args.abstractComponentArgs),
 				piston(args.pistonPort) {};
 
-			void opControl () {
+			void opControl () override {
 				// Perform the actuation if this is the button has JUST been pressed
 				if (master->get_digital(btn)) {
 					pneumaticActuation();
@@ -411,7 +416,7 @@ namespace hyper {
 
 			MogoMech mogoMech;
 			LiftMech liftMech;
-			
+
 			Conveyer conveyer;
 
 			/// @brief Creates chassis object
