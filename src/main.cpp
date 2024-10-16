@@ -13,7 +13,8 @@
 
 // TODO: Refactor ChassisComponent into abstract class, then
 // iterate over array of components running opControl for each.
-// (Auton will no longer be ChassisComponent)
+// easier than manually calling each component's opControl/constructor
+// NO LONGER ISSUE FOR AUTON CUZ IT IS NOW NOT DERIVING FROM CHASSISCOMPONENT
 
 // TODO: Create swith class for controls with 2 states
 
@@ -357,16 +358,16 @@ namespace hyper {
 	}; // class MogoMech
 
 	/// @brief Main auton class
-	class Auton{
+	class Auton {
 		private:
-			AbstractChassis* chassis;
+			Chassis* chassis;
 		protected:
 		public:
 			/// @brief Args for auton object
 			/// @param chassisComponentArgs Args for ChassisComponent object
 			/// @param speed Speed for auton control
 			struct AutonArgs {
-				AbstractChassis* chassis;
+				Chassis* chassis;
 				int speed = 100;
 			};
 
