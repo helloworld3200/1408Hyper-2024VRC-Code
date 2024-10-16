@@ -357,14 +357,16 @@ namespace hyper {
 	}; // class MogoMech
 
 	/// @brief Main auton class
-	class Auton : public ChassisComponent {
+	class Auton{
 		private:
+			AbstractChassis* chassis;
+		protected:
 		public:
 			/// @brief Args for auton object
 			/// @param chassisComponentArgs Args for ChassisComponent object
 			/// @param speed Speed for auton control
 			struct AutonArgs {
-				ChassisComponentArgs chassisComponentArgs;
+				AbstractChassis* chassis;
 				int speed = 100;
 			};
 
@@ -373,7 +375,7 @@ namespace hyper {
 			/// @brief Creates auton object
 			/// @param args Args for ChassisComponent object (check args struct for more info)
 			Auton(AutonArgs args) : 
-				ChassisComponent(args.chassisComponentArgs), speed(args.speed) {};
+				chassis(args.chassis), speed(args.speed) {};
 
 			void go() {
 				// TODO: Implement auton
