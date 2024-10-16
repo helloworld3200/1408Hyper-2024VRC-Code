@@ -13,7 +13,7 @@
 // Digital sensor port for pneumatics mogo mech
 #define MOGO_MECH_PORT 'B'
 
-//Digital sensor port for pneumatics conveyor lift
+// Digital sensor port for pneumatics conveyor lift
 #define LIFT_MECH_PORT 'A'
 
 // Motor ports for the conveyer
