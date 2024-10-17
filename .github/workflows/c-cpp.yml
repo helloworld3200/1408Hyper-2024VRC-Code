@@ -19,25 +19,18 @@ jobs:
       execprefix: "arm-none-eabi"
       deps: "wget tar xz-utils"
       installprefix: "/usr/share"
-
-      # Placeholders to be replaced at runtime
-      wgetlink: "placeholder"
-      installdir: "placeholder"
-      extractto: "placeholder"
-      shareprefix: "placeholder"
-      binprefix: "placeholder"
-
+      
     steps:
     - uses: actions/checkout@v4
     - name: prepare paths
       run: |
-        wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
+        echo 'wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"' >> $GITHUB_ENV
 
-        installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
-        extractto="${installdir}${archiveext}"
+        echo 'installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"' >> $GITHUB_ENV
+        echo 'extractto="${installdir}${archiveext}"' >> $GITHUB_ENV
 
-        shareprefix="${installdir}/bin/${execprefix}"
-        binprefix="/usr/bin/${execprefix}"
+        echo 'shareprefix="${installdir}/bin/${execprefix}"' >> $GITHUB_ENV
+        echo 'binprefix="/usr/bin/${execprefix}"' >> $GITHUB_ENV
     - name: print variables
       run: |
         echo "Installing ARM GCC version: ${gccver}"
