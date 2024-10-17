@@ -17,7 +17,7 @@
 #define LIFT_MECH_PORT 'A'
 
 // Motor ports for the conveyer
-#define CONVEYER_PORTS {11, 19}
+#define CONVEYER_PORTS {11, -1}
 
 // Motor ports for the conveyer
 
