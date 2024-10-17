@@ -273,9 +273,8 @@ namespace hyper {
 			}
 	}; // class Conveyer
 
-	class LiftMech : public AbstractComponent {
+	class LiftMech : public AbstractMech {
 		private:
-			pros::adi::DigitalOut piston;
 			//bool engaged = false;
 			//bool lastPressed = false;
 
@@ -293,10 +292,9 @@ namespace hyper {
 		protected:
 		public:
 			/// @brief Args for mogo mech object
-			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param abstractMechArgs Args for AbstractMech object
 			struct LiftMechArgs {
-				AbstractComponentArgs abstractComponentArgs;
-				char pistonPort;
+				AbstractMechArgs abstractMechArgs;
 			};
 
 			/// @brief Struct for buttons for lift mech object
@@ -312,9 +310,9 @@ namespace hyper {
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			LiftMech(LiftMechArgs args) : 
-				AbstractComponent(args.abstractComponentArgs),
-				piston(args.pistonPort) {};
+				AbstractMech(args.abstractMechArgs) {};
 
+			/// @brief Runs every loop to check if the button has been pressed
 			void opControl () override {
 				// Perform the actuation if this is the button has JUST been pressed
 				if (master->get_digital(btns.on)) {
@@ -324,16 +322,10 @@ namespace hyper {
 					piston.set_value(false);
 				}
 			}
-
-			/// @brief Gets the piston object 
-			pros::adi::DigitalOut& getPiston() {
-				return piston;
-			}
 	}; // class LiftMech
 
-	class MogoMech : public AbstractComponent {
+	class MogoMech : public AbstractMech {
 		private:
-			pros::adi::DigitalOut piston;
 			bool engaged = false;
 			bool lastPressed = false;
 
@@ -353,18 +345,17 @@ namespace hyper {
 			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_A;
 
 			/// @brief Args for mogo mech object
-			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param abstractMechArgs Args for AbstractMech object
 			struct MogoMechArgs {
-				AbstractComponentArgs abstractComponentArgs;
-				char pistonPort;
+				AbstractMechArgs abstractMechArgs;
 			};
 
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			MogoMech(MogoMechArgs args) : 
-				AbstractComponent(args.abstractComponentArgs),
-				piston(args.pistonPort) {};
+				AbstractMech(args.abstractMechArgs) {};
 
+			/// @brief Runs every loop to check if the button has been pressed
 			void opControl () override {
 				// Perform the actuation if this is the button has JUST been pressed
 				if (master->get_digital(btn)) {
@@ -374,10 +365,6 @@ namespace hyper {
 				} else {
 					lastPressed = false;
 				}
-			}
-
-			pros::adi::DigitalOut& getPiston() {
-				return piston;
 			}
 	}; // class MogoMech
 
