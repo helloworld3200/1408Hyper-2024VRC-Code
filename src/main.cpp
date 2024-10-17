@@ -11,18 +11,7 @@
 // currently using legacy toggles (not using Toggle class):
 // liftmech, conveyer, mogomech
 
-// TODO: Refactor ChassisComponent into abstract class, then
-// iterate over array of components running opControl for each.
-// easier than manually calling each component's opControl/constructor
-// NO LONGER ISSUE FOR AUTON CUZ IT IS NOW NOT DERIVING FROM CHASSISCOMPONENT
-
-// TODO: Refactor static options (variables with no need to init)
-// into new struct for each class so no need to redeclare.
-// THIS HAS A NEW CONSEQUENCE (SEE BELOW)
-
-// TODO: Basic structs in each class for buttons/speeds (mainly for components)
-
-// so much DRY violations >:((((( need more classes!!!!!
+// TODO: so much DRY violations >:((((( need more classes!!!!! (pneumaticcomponent)
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
@@ -118,6 +107,40 @@ namespace hyper {
 
 			virtual ~AbstractComponent() = default;
 	}; // class ChassisComponent
+
+	class AbstractMech : public AbstractComponent {
+		private:
+		protected:
+			pros::adi::DigitalOut piston;
+		public:
+			/// @brief Args for abstract mech object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param pistonPort Port for piston
+			struct AbstractMechArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				char pistonPort;
+			};
+
+			/// @brief Creates abstract mech object
+			/// @param args Args for abstract mech object (check args struct for more info)
+			AbstractMech(AbstractMechArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				piston(args.pistonPort) {};
+
+			/// @brief Sets actuation value of piston
+			/// @param value Value to set the piston to
+			void actuate(bool value) {
+				piston.set_value(value);
+			}
+
+			/// @brief Gets the piston object
+			/// @return PROS ADI DigitalOut object for piston
+			pros::adi::DigitalOut& getPiston() {
+				return piston;
+			}
+
+			virtual ~AbstractMech() = default;
+	}; // class AbstractMech
 
 	/// @brief Class for a toggle on the controller
 	class Toggle {
@@ -314,7 +337,7 @@ namespace hyper {
 			bool engaged = false;
 			bool lastPressed = false;
 
-			void pneumaticActuation() {
+			void processPress() {
 				if (!lastPressed) {
 					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
 					engaged = !engaged;
@@ -345,7 +368,7 @@ namespace hyper {
 			void opControl () override {
 				// Perform the actuation if this is the button has JUST been pressed
 				if (master->get_digital(btn)) {
-					pneumaticActuation();
+					processPress();
 					lastPressed = true;
 					//pros::lcd::set_text(1, "L1 pressed");
 				} else {
@@ -370,7 +393,7 @@ namespace hyper {
 			int speed = 100;
 
 			/// @brief Creates auton object
-			/// @param args Args for ChassisComponent object (check args struct for more info)
+			/// @param chassis Pointer to chassis object
 			Auton(Chassis* chassis) : 
 				chassis(chassis) {};
 
