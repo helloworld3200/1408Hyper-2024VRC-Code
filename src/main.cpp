@@ -215,8 +215,8 @@ namespace hyper {
 				vector<std::int8_t> conveyerPorts;
 				pros::controller_digital_e_t onBtn = pros::E_CONTROLLER_DIGITAL_L1;
 				pros::controller_digital_e_t offBtn = pros::E_CONTROLLER_DIGITAL_L2;
-				int forwardSpeed = 200;
-				int backSpeed = -200;
+				int forwardSpeed = 600;
+				int backSpeed = -600;
 			};
 
 			Conveyer(ConveyerArgs args) :
