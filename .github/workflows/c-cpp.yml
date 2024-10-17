@@ -11,21 +11,28 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    # Define env variables to be used
+    env:
+      # Change this to the version you want to install
+      gccver: "13.3.rel1"
+      archiveext: ".tar.xz"
+      execprefix: "arm-none-eabi"
+      deps: "wget tar xz-utils"
+      installprefix: "/usr/share"
+
+      # Placeholders to be replaced at runtime
+      wgetlink: "placeholder"
+      installdir: "placeholder"
+      extractto: "placeholder"
+      shareprefix: "placeholder"
+      binprefix: "placeholder"
+
     steps:
     - uses: actions/checkout@v4
-    - name: prepare variables
-      run: |
-        # Change this part with correct version!
-        gccver="13.3.rel1"
-    - name: prepare constants
-      run: |
-        archiveext=".tar.xz"
-        execprefix="arm-none-eabi"
-        wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
-        deps="wget tar xz-utils"
     - name: prepare paths
       run: |
-        installprefix="/usr/share"
+        wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
+
         installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
         extractto="${installdir}${archiveext}"
 
