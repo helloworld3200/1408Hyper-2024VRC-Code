@@ -38,15 +38,14 @@ jobs:
 
         shareprefix="${installdir}/bin/${execprefix}"
         binprefix="/usr/bin/${execprefix}"
-
+    - name: print variables
+      run: |
         echo "Installing ARM GCC version: ${gccver}"
         echo "from: ${wgetlink}"
 
         echo "Downloading archive to: ${extractto}"
         echo "Extracting to: ${installdir}"
         echo "Creating symlinks for install in: ${binprefix}"
-    - name: print variables
-      run: |
 
     - name: install/extract arm-gcc & deps
       run: |
