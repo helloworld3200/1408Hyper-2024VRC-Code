@@ -358,6 +358,9 @@ namespace hyper {
 			}
 	}; // class MogoMech
 
+	// Fix circular dependency
+	class Chassis;
+
 	/// @brief Main auton class
 	class Auton {
 		private:
