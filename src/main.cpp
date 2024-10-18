@@ -393,6 +393,16 @@ namespace hyper {
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
+			void componentsOpControl() {
+				// Run the mainloop for additional components
+				// Pneumatics
+				mogoMech.opControl();
+				liftMech.opControl();
+
+				// Motors
+				conveyer.opControl();
+			}
+
 		protected:
 		public:
 			/// @brief Enum for different driver control modes
@@ -445,13 +455,7 @@ namespace hyper {
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
 				// Run the mainloop for additional components
-				// TODO: Refactor ChassisComponent into abstract class, then
-				// iterate over array of components running opControl for each.
-				// (Auton will no longer be ChassisComponent)
-				mogoMech.opControl();
-				liftMech.opControl();
-
-				conveyer.opControl();
+				componentsOpControl();
 
 				switch (opControlMode) {
 					case OpControlMode::ARCADE:
