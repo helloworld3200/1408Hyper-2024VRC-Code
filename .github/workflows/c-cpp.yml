@@ -17,20 +17,25 @@ jobs:
       gccver: "13.3.rel1"
       archiveext: ".tar.xz"
       execprefix: "arm-none-eabi"
-      deps: "wget tar xz-utils"
+      deps: wget
       installprefix: "/usr/share"
       
     steps:
     - uses: actions/checkout@v4
     - name: prepare paths
       run: |
-        echo 'wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"' >> $GITHUB_ENV
+        wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
+        echo 'wgetlink=$wgetlink' >> $GITHUB_ENV
 
-        echo 'installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"' >> $GITHUB_ENV
-        echo 'extractto="${installdir}${archiveext}"' >> $GITHUB_ENV
+        installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
+        echo 'installdir=$installdir' >> $GITHUB_ENV
+        extractto="${installdir}${archiveext}"
+        echo 'extractto=$extractto' >> $GITHUB_ENV
 
-        echo 'shareprefix="${installdir}/bin/${execprefix}"' >> $GITHUB_ENV
-        echo 'binprefix="/usr/bin/${execprefix}"' >> $GITHUB_ENV
+        shareprefix="${installdir}/bin/${execprefix}"
+        echo 'shareprefix=$shareprefix' >> $GITHUB_ENV
+        binprefix="/usr/bin/${execprefix}"
+        echo 'binprefix=$binprefix' >> $GITHUB_ENV
     - name: print variables
       run: |
         echo "Installing ARM GCC version: ${gccver}"
