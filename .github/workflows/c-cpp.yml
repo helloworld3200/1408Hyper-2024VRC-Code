@@ -27,7 +27,7 @@ jobs:
         wgetlink="wgetlink=https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
         echo $wgetlink >> $GITHUB_ENV
 
-        installdir="wgetlink=${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
+        installdir="installdir=${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
         echo $installdir >> $GITHUB_ENV
         extractto="extractto=${installdir}${archiveext}"
         echo $extractto >> $GITHUB_ENV
