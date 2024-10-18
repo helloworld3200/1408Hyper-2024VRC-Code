@@ -24,18 +24,18 @@ jobs:
     - uses: actions/checkout@v4
     - name: prepare paths
       run: |
-        wgetlink="https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
-        echo 'wgetlink=$wgetlink' >> $GITHUB_ENV
+        wgetlink="wgetlink=https://developer.arm.com/-/media/Files/downloads/gnu/${gccver}/binrel/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}${archiveext}"
+        echo $wgetlink >> $GITHUB_ENV
 
-        installdir="${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
-        echo 'installdir=$installdir' >> $GITHUB_ENV
-        extractto="${installdir}${archiveext}"
-        echo 'extractto=$extractto' >> $GITHUB_ENV
+        installdir="wgetlink=${installprefix}/arm-gnu-toolchain-${gccver}-x86_64-${execprefix}"
+        echo $installdir >> $GITHUB_ENV
+        extractto="extractto=${installdir}${archiveext}"
+        echo $extractto >> $GITHUB_ENV
 
-        shareprefix="${installdir}/bin/${execprefix}"
-        echo 'shareprefix=$shareprefix' >> $GITHUB_ENV
-        binprefix="/usr/bin/${execprefix}"
-        echo 'binprefix=$binprefix' >> $GITHUB_ENV
+        shareprefix="shareprefix=${installdir}/bin/${execprefix}"
+        echo $shareprefix >> $GITHUB_ENV
+        binprefix="binprefix=/usr/bin/${execprefix}"
+        echo $binprefix >> $GITHUB_ENV
     - name: print variables
       run: |
         echo "Installing ARM GCC version: ${gccver}"
