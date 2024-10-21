@@ -157,19 +157,22 @@ namespace hyper {
 
 			void toggle() {
 				if (st.state) {
-					st.funcs.offFunc();
+					funcs.offFunc();
 					st.state = false;
 				} else {
-					st.funcs.onFunc();
+					funcs.onFunc();
 					st.state = true;
 				}
 			}
 		protected:
 		public:
-			/// @brief Struct for functions for toggle object
-			/// @param offFunc Function to toggle off
-			/// @param onFunc Function to toggle on
-
+			/// @brief Struct for static functions for toggle object
+			/// @param offFunc Function to toggle off (static)
+			/// @param onFunc Function to toggle on (static)
+			struct StaticFuncs {
+				void (AbstractComponent::*offFunc)();
+				void (AbstractComponent::*onFunc)();
+			};
 
 			/// @brief Static options for toggle object
 			/// @param btn Button for toggle
@@ -177,7 +180,6 @@ namespace hyper {
 			/// @param state Initial state for toggle
 			struct StaticOptions {
 				pros::controller_digital_e_t btn;
-				ToggleFuncs funcs;
 				bool state = false;
 			};
 
@@ -187,6 +189,7 @@ namespace hyper {
 			struct ToggleArgs {
 				pros::Controller* master;
 				AbstractComponent* component;
+				StaticFuncs staticFuncs;
 				StaticOptions st;
 			};
 
@@ -196,6 +199,10 @@ namespace hyper {
 			/// @param args Args for toggle object (check args struct for more info)
 			Toggle(ToggleArgs args) : 
 				master(args.master), 
+				funcs({
+					std::bind(args.staticFuncs.offFunc, args.component), 
+					std::bind(args.staticFuncs.onFunc, args.component)
+				}),
 				st(args.st) {};
 
 			/// @brief Run every single loop to check if the button has been pressed
@@ -208,6 +215,12 @@ namespace hyper {
 				} else {
 					lastPressed = false;
 				}
+			}
+
+			/// @brief Gets the toggle functions
+			/// @return Toggle functions
+			ToggleFuncs& getFuncs() {
+				return funcs;
 			}
 	}; // class Toggle
 
@@ -401,6 +414,10 @@ namespace hyper {
 
 			OpControlMode opControlMode;
 			std::function<void()> opControlDrive;
+
+			void bindOpControlDrive(void (Chassis::*driveFunc)()) {
+				opControlDrive = std::bind(driveFunc, this);
+			}
 		protected:
 		public:
 			/// @brief Enum for different driver control modes
@@ -497,10 +514,10 @@ namespace hyper {
 
 				switch (opControlMode) {
 					case OpControlMode::ARCADE:
-						opControlDrive = std::bind(&Chassis::arcadeControl, this);
+						bindOpControlDrive(&Chassis::arcadeControl);
 						break;
 					default:
-						opControlDrive = std::bind(&Chassis::fallbackControl, this);
+						bindOpControlDrive(&Chassis::fallbackControl);
 						break;
 				}
 			}
