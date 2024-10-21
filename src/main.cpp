@@ -564,7 +564,7 @@ namespace hyper {
 	/// @param errorMsg Error message to display if assertion fails
 	template <typename T>
 	void assertArithmetic(const T val) {
-		static_assert(std::is_arithmetic<T>::val, "Value must be arithmetic");
+		static_assert(std::is_arithmetic<T>::value, "Value must be arithmetic");
 	}
 
 	/// @brief Clamp a value between a min and max
@@ -572,7 +572,7 @@ namespace hyper {
 	/// @param min Minimum value
 	/// @param max Maximum value
 	template <typename T>
-	T clamp(T val, T min, T max) {
+	T clamp(const T val, const T min, const T max) {
 		assertArithmetic(val);
 
 		if (val < min) {
