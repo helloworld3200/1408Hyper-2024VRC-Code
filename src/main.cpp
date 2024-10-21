@@ -234,8 +234,8 @@ namespace hyper {
 			};
 
 			struct Speeds {
-				int fwd = 600;
-				int back = -600;
+				int fwd = 2000;
+				int back = -2000;
 			};
 
 			struct Buttons {
