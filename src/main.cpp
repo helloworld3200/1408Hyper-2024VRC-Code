@@ -147,6 +147,27 @@ namespace hyper {
 
 	/// @brief Class for a toggle on the controller
 	class Toggle {
+		private:
+			struct ToggleFuncs {
+				std::function<void()> offFunc;
+				std::function<void()> onFunc;
+			};
+
+			bool lastPressed = false;
+
+			pros::Controller* master;
+			ToggleFuncs funcs;
+
+			void toggle() {
+				if (st.state) {
+					funcs.offFunc();
+					st.state = false;
+				} else {
+					funcs.onFunc();
+					st.state = true;
+				}
+			}
+		protected:
 		public:
 			/// @brief Struct for static functions for toggle object
 			/// @param offFunc Function to toggle off (static)
@@ -204,30 +225,25 @@ namespace hyper {
 			ToggleFuncs& getFuncs() {
 				return funcs;
 			}
-		protected:
-		private:
-			struct ToggleFuncs {
-				std::function<void()> offFunc;
-				std::function<void()> onFunc;
-			};
-
-			bool lastPressed = false;
-
-			pros::Controller* master;
-			ToggleFuncs funcs;
-
-			void toggle() {
-				if (st.state) {
-					funcs.offFunc();
-					st.state = false;
-				} else {
-					funcs.onFunc();
-					st.state = true;
-				}
-			}
 	}; // class Toggle
 
 	class Conveyer : public AbstractComponent {
+		private:
+			pros::MotorGroup conveyerMotors;
+			//bool conveyerEngaged = false;
+
+			//bool btnLastPressed = false;
+
+			/*void moveConveyer() {
+				if (conveyerEngaged) {
+					conveyerMotors.move_velocity(0);
+					conveyerEngaged = false;
+				} else {
+					conveyerMotors.move_velocity(200);
+					conveyerEngaged = true;
+				}
+			}*/
+		protected:
 		public:
 			/// @brief Args for conveyer object
 			/// @param abstractComponentArgs Args for AbstractComponent object
@@ -275,25 +291,25 @@ namespace hyper {
 					move(false);
 				}
 			}
-		protected:
-		private:
-			pros::MotorGroup conveyerMotors;
-			//bool conveyerEngaged = false;
-
-			//bool btnLastPressed = false;
-
-			/*void moveConveyer() {
-				if (conveyerEngaged) {
-					conveyerMotors.move_velocity(0);
-					conveyerEngaged = false;
-				} else {
-					conveyerMotors.move_velocity(200);
-					conveyerEngaged = true;
-				}
-			}*/
 	}; // class Conveyer
 
 	class LiftMech : public AbstractMech {
+		private:
+			//bool engaged = false;
+			//bool lastPressed = false;
+
+			/*void pneumaticActuation() {
+				if (!lastPressed) {
+					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+					engaged = !engaged;
+					if (engaged) {
+						piston.set_value(true);
+					} else {
+						piston.set_value(false);
+					}
+				}
+			}*/
+		protected:
 		public:
 			/// @brief Args for mogo mech object
 			/// @param abstractMechArgs Args for AbstractMech object
@@ -326,12 +342,25 @@ namespace hyper {
 					piston.set_value(false);
 				}
 			}
-		protected:
-		private:
 	}; // class LiftMech
 
 	class MogoMech : public AbstractMech {
+		private:
+			bool engaged = false;
+			bool lastPressed = false;
 
+			void processPress() {
+				if (!lastPressed) {
+					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
+					engaged = !engaged;
+					if (engaged) {
+						piston.set_value(true);
+					} else {
+						piston.set_value(false);
+					}
+				}
+			}
+		protected:
 		public:
 			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_A;
 
@@ -355,22 +384,6 @@ namespace hyper {
 					//pros::lcd::set_text(1, "L1 pressed");
 				} else {
 					lastPressed = false;
-				}
-			}
-		protected:
-		private:
-			bool engaged = false;
-			bool lastPressed = false;
-
-			void processPress() {
-				if (!lastPressed) {
-					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-					engaged = !engaged;
-					if (engaged) {
-						piston.set_value(true);
-					} else {
-						piston.set_value(false);
-					}
 				}
 			}
 	}; // class MogoMech
@@ -399,6 +412,14 @@ namespace hyper {
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
+		private:
+			OpControlMode opControlMode;
+			std::function<void()> opControlDrive;
+
+			void bindOpControlDrive(void (Chassis::*driveFunc)()) {
+				opControlDrive = std::bind(driveFunc, this);
+			}
+		protected:
 		public:
 			/// @brief Enum for different driver control modes
 			enum class OpControlMode {
@@ -505,14 +526,6 @@ namespace hyper {
 			/// @return Driver control mode
 			OpControlMode getOpControlMode() {
 				return opControlMode;
-			}
-		protected:
-		private:
-			OpControlMode opControlMode;
-			std::function<void()> opControlDrive;
-
-			void bindOpControlDrive(void (Chassis::*driveFunc)()) {
-				opControlDrive = std::bind(driveFunc, this);
 			}
 	}; // class Chassis
 
