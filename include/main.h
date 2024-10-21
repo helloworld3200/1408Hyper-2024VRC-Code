@@ -47,6 +47,10 @@
 #include <utility>
 // Function args
 #include <functional>
+// Types
+#include <type_traits>
+// Math
+#include <cmath>
 
 // We're using fmt as header-only library to replace std::format
 #define FMT_HEADER_ONLY

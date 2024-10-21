@@ -19,6 +19,11 @@ namespace hyper {
 	template <typename T>
 	string vectorToString(vector<T>& vec, string delimiter = ", ");
 
+	template <typename T>
+	T clamp(T val, T min, T max);
+
+	int32_t prepareMoveVoltage(float raw);
+
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
 		private:
@@ -145,27 +150,33 @@ namespace hyper {
 	/// @brief Class for a toggle on the controller
 	class Toggle {
 		private:
+			struct ToggleFuncs {
+				std::function<void()> offFunc;
+				std::function<void()> onFunc;
+			};
+
 			bool lastPressed = false;
 
 			pros::Controller* master;
+			ToggleFuncs funcs;
 
 			void toggle() {
 				if (st.state) {
-					st.funcs.offFunc();
+					funcs.offFunc();
 					st.state = false;
 				} else {
-					st.funcs.onFunc();
+					funcs.onFunc();
 					st.state = true;
 				}
 			}
 		protected:
 		public:
-			/// @brief Struct for functions for toggle object
-			/// @param offFunc Function to toggle off
-			/// @param onFunc Function to toggle on
-			struct ToggleFuncs {
-				std::function<void()> offFunc;
-				std::function<void()> onFunc;
+			/// @brief Struct for static functions for toggle object
+			/// @param offFunc Function to toggle off (static)
+			/// @param onFunc Function to toggle on (static)
+			struct StaticFuncs {
+				void (AbstractComponent::*offFunc)();
+				void (AbstractComponent::*onFunc)();
 			};
 
 			/// @brief Static options for toggle object
@@ -174,7 +185,6 @@ namespace hyper {
 			/// @param state Initial state for toggle
 			struct StaticOptions {
 				pros::controller_digital_e_t btn;
-				ToggleFuncs funcs;
 				bool state = false;
 			};
 
@@ -183,6 +193,8 @@ namespace hyper {
 			/// @param st Static options for toggle object
 			struct ToggleArgs {
 				pros::Controller* master;
+				AbstractComponent* component;
+				StaticFuncs staticFuncs;
 				StaticOptions st;
 			};
 
@@ -192,6 +204,10 @@ namespace hyper {
 			/// @param args Args for toggle object (check args struct for more info)
 			Toggle(ToggleArgs args) : 
 				master(args.master), 
+				funcs({
+					std::bind(args.staticFuncs.offFunc, args.component), 
+					std::bind(args.staticFuncs.onFunc, args.component)
+				}),
 				st(args.st) {};
 
 			/// @brief Run every single loop to check if the button has been pressed
@@ -205,11 +221,16 @@ namespace hyper {
 					lastPressed = false;
 				}
 			}
+
+			/// @brief Gets the toggle functions
+			/// @return Toggle functions
+			ToggleFuncs& getFuncs() {
+				return funcs;
+			}
 	}; // class Toggle
 
 	class Conveyer : public AbstractComponent {
 		private:
-			pros::MotorGroup conveyerMotors;
 			//bool conveyerEngaged = false;
 
 			//bool btnLastPressed = false;
@@ -225,6 +246,8 @@ namespace hyper {
 			}*/
 		protected:
 		public:
+			const pros::MotorGroup conveyerMotors;
+
 			/// @brief Args for conveyer object
 			/// @param abstractComponentArgs Args for AbstractComponent object
 			/// @param conveyerPorts Vector of ports for conveyer motors
@@ -392,31 +415,27 @@ namespace hyper {
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
-		private:
-			void componentsOpControl() {
-				// Run the mainloop for additional components
-				// Pneumatics
-				mogoMech.opControl();
-				liftMech.opControl();
-
-				// Motors
-				conveyer.opControl();
-			}
-
-		protected:
 		public:
 			/// @brief Enum for different driver control modes
 			enum class OpControlMode {
 				ARCADE
 
 			};
+		private:
+			OpControlMode opControlMode;
+			std::function<void()> opControlDrive;
 
+			void bindOpControlDrive(void (Chassis::*driveFunc)()) {
+				opControlDrive = std::bind(driveFunc, this);
+			}
+		protected:
+		public:
 			/// @brief Struct for different driver control speeds
 			/// @param turnSpeed Speed for turning
 			/// @param forwardBackSpeed Speed for forward/backward
 			struct OpControlSpeed {
-				int turnSpeed = 2;
-				int forwardBackSpeed = 2;
+				float turnSpeed = 2;
+				float forwardBackSpeed = 2;
 			};
 
 			/// @brief Args for chassis object
@@ -432,7 +451,7 @@ namespace hyper {
 				vector<std::int8_t> conveyerPorts;
 			};
 
-			OpControlMode opControlMode = OpControlMode::ARCADE;
+			
 			OpControlSpeed opControlSpeed = {};
 
 			Auton autonController;
@@ -449,34 +468,34 @@ namespace hyper {
 				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
 				conveyer({this, args.conveyerPorts}), 
-				liftMech({this, args.liftMechPort}) {};
+				liftMech({this, args.liftMechPort}) {
+					setOpControlMode();
+				};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
+				opControlDrive();
+				
 				// Run the mainloop for additional components
-				componentsOpControl();
+				// Pneumatics
+				mogoMech.opControl();
+				liftMech.opControl();
 
-				switch (opControlMode) {
-					case OpControlMode::ARCADE:
-						arcadeControl();
-						break;
-					default:
-						fallbackControl();
-						break;
-				}
+				// Motors
+				conveyer.opControl();
 			}
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
 			void arcadeControl() {
-				int dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
-				int turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
+				float dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
+				float turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
 
 				dir *= opControlSpeed.forwardBackSpeed;
 				turn *= opControlSpeed.turnSpeed;
 				
-				int left_voltage = dir - turn;                      // Sets left motor voltage
-				int right_voltage = dir + turn;                     // Sets right motor voltage
+				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
+				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
@@ -490,6 +509,27 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			void auton() override {
 				autonController.go();
+			}
+
+			/// @brief Sets the driver control mode
+			/// @param mode Mode to set the driver control to
+			void setOpControlMode(OpControlMode mode = OpControlMode::ARCADE) {
+				opControlMode = mode;
+
+				switch (opControlMode) {
+					case OpControlMode::ARCADE:
+						bindOpControlDrive(&Chassis::arcadeControl);
+						break;
+					default:
+						bindOpControlDrive(&Chassis::fallbackControl);
+						break;
+				}
+			}
+
+			/// @brief Gets the driver control mode
+			/// @return Driver control mode
+			OpControlMode getOpControlMode() {
+				return opControlMode;
 			}
 	}; // class Chassis
 
@@ -512,6 +552,47 @@ namespace hyper {
 		oss << "}";
 
 		return oss.str();
+	}
+
+	/// @brief Struct for motor move bounds
+	struct MotorMoveBounds {
+		static constexpr int32_t MIN = -127;
+		static constexpr int32_t MAX = 127;
+	};
+
+	/// @brief Assert that a value is arithmetic
+	/// @param val Value to assert
+	/// @param errorMsg Error message to display if assertion fails
+	template <typename T>
+	void assertArithmetic(const T val) {
+		static_assert(std::is_arithmetic<T>::value, "Value must be arithmetic");
+	}
+
+	/// @brief Clamp a value between a min and max
+	/// @param val Value to clamp
+	/// @param min Minimum value
+	/// @param max Maximum value
+	template <typename T>
+	T clamp(const T val, const T min, const T max) {
+		assertArithmetic(val);
+
+		if (val < min) {
+			return min;
+		} else if (val > max) {
+			return max;
+		} else {
+			return val;
+		}
+	}
+
+	int32_t prepareMoveVoltage(float raw) {
+		// Round the number to the nearest integer
+		raw = std::round(raw);
+
+		int32_t voltage = static_cast<int32_t>(raw);
+		voltage = clamp(voltage, MotorMoveBounds::MIN, MotorMoveBounds::MAX);
+
+		return voltage;
 	}
 } // namespace hyper
 
