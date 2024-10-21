@@ -22,6 +22,8 @@ namespace hyper {
 	template <typename T>
 	T clamp(T val, T min, T max);
 
+	int32_t prepareMoveVoltage(float raw);
+
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
 		private:
@@ -412,9 +414,13 @@ namespace hyper {
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
-		private:
-			enum class OpControlMode;
+		public:
+			/// @brief Enum for different driver control modes
+			enum class OpControlMode {
+				ARCADE
 
+			};
+		private:
 			OpControlMode opControlMode;
 			std::function<void()> opControlDrive;
 
@@ -423,12 +429,6 @@ namespace hyper {
 			}
 		protected:
 		public:
-			/// @brief Enum for different driver control modes
-			enum class OpControlMode {
-				ARCADE
-
-			};
-
 			/// @brief Struct for different driver control speeds
 			/// @param turnSpeed Speed for turning
 			/// @param forwardBackSpeed Speed for forward/backward
@@ -563,8 +563,8 @@ namespace hyper {
 	/// @param val Value to assert
 	/// @param errorMsg Error message to display if assertion fails
 	template <typename T>
-	void assertArithmetic(T val, string errorMsg = "Value must be arithmetic") {
-		static_assert(std::is_arithmetic<T>::val, errorMsg.c_str());
+	void assertArithmetic(const T val) {
+		static_assert(std::is_arithmetic<T>::val, "Value must be arithmetic");
 	}
 
 	/// @brief Clamp a value between a min and max
