@@ -24,6 +24,11 @@ namespace hyper {
 
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
+		private:
+		protected:
+			pros::MotorGroup left_mg;
+			pros::MotorGroup right_mg;
+			pros::Controller master;
 		public:
 			/// @brief Args for abstract chassis object
 			/// @param leftPorts Vector of ports for left side of drivetrain
@@ -70,15 +75,15 @@ namespace hyper {
 
 			virtual void opControl() = 0;
 			virtual void auton() = 0;
-		protected:
-			pros::MotorGroup left_mg;
-			pros::MotorGroup right_mg;
-			pros::Controller master;
-		private:
 	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
 	class AbstractComponent {
+		private:
+		protected:
+			AbstractChassis* chassis;
+
+			pros::Controller* master;
 		public:
 			/// @brief Args for AbstractComponent object
 			/// @param chassis AbstractChassis derived object to be used for the component
@@ -104,14 +109,12 @@ namespace hyper {
 			virtual void opControl() = 0;
 
 			virtual ~AbstractComponent() = default;
-		protected:
-			AbstractChassis* chassis;
-
-			pros::Controller* master;
-		private:
 	}; // class ChassisComponent
 
 	class AbstractMech : public AbstractComponent {
+		private:
+		protected:
+			pros::adi::DigitalOut piston;
 		public:
 			/// @brief Args for abstract mech object
 			/// @param abstractComponentArgs Args for AbstractComponent object
@@ -140,9 +143,6 @@ namespace hyper {
 			}
 
 			virtual ~AbstractMech() = default;
-		protected:
-			pros::adi::DigitalOut piston;
-		private:
 	}; // class AbstractMech
 
 	/// @brief Class for a toggle on the controller
@@ -413,6 +413,8 @@ namespace hyper {
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
+			enum class OpControlMode;
+
 			OpControlMode opControlMode;
 			std::function<void()> opControlDrive;
 
@@ -448,6 +450,7 @@ namespace hyper {
 				vector<std::int8_t> conveyerPorts;
 			};
 
+			
 			OpControlSpeed opControlSpeed = {};
 
 			Auton autonController;
