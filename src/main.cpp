@@ -145,9 +145,15 @@ namespace hyper {
 	/// @brief Class for a toggle on the controller
 	class Toggle {
 		private:
+			struct ToggleFuncs {
+				std::function<void()> offFunc;
+				std::function<void()> onFunc;
+			};
+
 			bool lastPressed = false;
 
 			pros::Controller* master;
+			ToggleFuncs funcs;
 
 			void toggle() {
 				if (st.state) {
@@ -163,10 +169,7 @@ namespace hyper {
 			/// @brief Struct for functions for toggle object
 			/// @param offFunc Function to toggle off
 			/// @param onFunc Function to toggle on
-			struct ToggleFuncs {
-				std::function<void()> offFunc;
-				std::function<void()> onFunc;
-			};
+
 
 			/// @brief Static options for toggle object
 			/// @param btn Button for toggle
@@ -183,6 +186,7 @@ namespace hyper {
 			/// @param st Static options for toggle object
 			struct ToggleArgs {
 				pros::Controller* master;
+				AbstractComponent* component;
 				StaticOptions st;
 			};
 
@@ -393,16 +397,10 @@ namespace hyper {
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
-			void componentsOpControl() {
-				// Run the mainloop for additional components
-				// Pneumatics
-				mogoMech.opControl();
-				liftMech.opControl();
+			enum class OpControlMode;
 
-				// Motors
-				conveyer.opControl();
-			}
-
+			OpControlMode opControlMode;
+			std::function<void()> opControlDrive;
 		protected:
 		public:
 			/// @brief Enum for different driver control modes
@@ -432,7 +430,7 @@ namespace hyper {
 				vector<std::int8_t> conveyerPorts;
 			};
 
-			OpControlMode opControlMode = OpControlMode::ARCADE;
+			
 			OpControlSpeed opControlSpeed = {};
 
 			Auton autonController;
@@ -449,22 +447,22 @@ namespace hyper {
 				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
 				conveyer({this, args.conveyerPorts}), 
-				liftMech({this, args.liftMechPort}) {};
+				liftMech({this, args.liftMechPort}) {
+					setOpControlMode();
+				};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
+				opControlDrive();
+				
 				// Run the mainloop for additional components
-				componentsOpControl();
+				// Pneumatics
+				mogoMech.opControl();
+				liftMech.opControl();
 
-				switch (opControlMode) {
-					case OpControlMode::ARCADE:
-						arcadeControl();
-						break;
-					default:
-						fallbackControl();
-						break;
-				}
+				// Motors
+				conveyer.opControl();
 			}
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
@@ -490,6 +488,27 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			void auton() override {
 				autonController.go();
+			}
+
+			/// @brief Sets the driver control mode
+			/// @param mode Mode to set the driver control to
+			void setOpControlMode(OpControlMode mode = OpControlMode::ARCADE) {
+				opControlMode = mode;
+
+				switch (opControlMode) {
+					case OpControlMode::ARCADE:
+						opControlDrive = std::bind(&Chassis::arcadeControl, this);
+						break;
+					default:
+						opControlDrive = std::bind(&Chassis::fallbackControl, this);
+						break;
+				}
+			}
+
+			/// @brief Gets the driver control mode
+			/// @return Driver control mode
+			OpControlMode getOpControlMode() {
+				return opControlMode;
 			}
 	}; // class Chassis
 
