@@ -19,6 +19,9 @@ namespace hyper {
 	template <typename T>
 	string vectorToString(vector<T>& vec, string delimiter = ", ");
 
+	template <typename T>
+	T clamp(T val, T min, T max);
+
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
 		private:
@@ -430,8 +433,8 @@ namespace hyper {
 			/// @param turnSpeed Speed for turning
 			/// @param forwardBackSpeed Speed for forward/backward
 			struct OpControlSpeed {
-				int turnSpeed = 2;
-				int forwardBackSpeed = 2;
+				float turnSpeed = 2;
+				float forwardBackSpeed = 2;
 			};
 
 			/// @brief Args for chassis object
@@ -484,14 +487,14 @@ namespace hyper {
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
 			void arcadeControl() {
-				int dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
-				int turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
+				float dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
+				float turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
 
 				dir *= opControlSpeed.forwardBackSpeed;
 				turn *= opControlSpeed.turnSpeed;
 				
-				int left_voltage = dir - turn;                      // Sets left motor voltage
-				int right_voltage = dir + turn;                     // Sets right motor voltage
+				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
+				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
@@ -548,6 +551,47 @@ namespace hyper {
 		oss << "}";
 
 		return oss.str();
+	}
+
+	/// @brief Struct for motor move bounds
+	struct MotorMoveBounds {
+		static constexpr int32_t MIN = -127;
+		static constexpr int32_t MAX = 127;
+	};
+
+	/// @brief Assert that a value is arithmetic
+	/// @param val Value to assert
+	/// @param errorMsg Error message to display if assertion fails
+	template <typename T>
+	void assertArithmetic(T val, string errorMsg = "Value must be arithmetic") {
+		static_assert(std::is_arithmetic<T>::val, errorMsg.c_str());
+	}
+
+	/// @brief Clamp a value between a min and max
+	/// @param val Value to clamp
+	/// @param min Minimum value
+	/// @param max Maximum value
+	template <typename T>
+	T clamp(T val, T min, T max) {
+		assertArithmetic(val);
+
+		if (val < min) {
+			return min;
+		} else if (val > max) {
+			return max;
+		} else {
+			return val;
+		}
+	}
+
+	int32_t prepareMoveVoltage(float raw) {
+		// Round the number to the nearest integer
+		raw = std::round(raw);
+
+		int32_t voltage = static_cast<int32_t>(raw);
+		voltage = clamp(voltage, MotorMoveBounds::MIN, MotorMoveBounds::MAX);
+
+		return voltage;
 	}
 } // namespace hyper
 
