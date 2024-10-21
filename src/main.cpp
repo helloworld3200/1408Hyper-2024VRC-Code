@@ -231,7 +231,6 @@ namespace hyper {
 
 	class Conveyer : public AbstractComponent {
 		private:
-			pros::MotorGroup conveyerMotors;
 			//bool conveyerEngaged = false;
 
 			//bool btnLastPressed = false;
@@ -247,6 +246,8 @@ namespace hyper {
 			}*/
 		protected:
 		public:
+			const pros::MotorGroup conveyerMotors;
+
 			/// @brief Args for conveyer object
 			/// @param abstractComponentArgs Args for AbstractComponent object
 			/// @param conveyerPorts Vector of ports for conveyer motors
