@@ -253,7 +253,7 @@ namespace hyper {
 				DrivetrainPorts ports;
 			};
 
-			DriveControlSpeed opControlSpeed = {};
+			DriveControlSpeed driveControlSpeed = {};
 
 			std::int32_t maxRelativeVelocity = 1024;
 
@@ -273,8 +273,8 @@ namespace hyper {
 				float dir = -1 * master->get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
 				float turn = master->get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
 
-				dir *= opControlSpeed.forwardBackSpeed;
-				turn *= opControlSpeed.turnSpeed;
+				dir *= driveControlSpeed.forwardBackSpeed;
+				turn *= driveControlSpeed.turnSpeed;
 				
 				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
 				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
