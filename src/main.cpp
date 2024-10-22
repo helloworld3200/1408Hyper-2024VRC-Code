@@ -391,6 +391,83 @@ namespace hyper {
 			}
 	}; // class MogoMech
 
+	/// @brief Class for driver control
+	class DriveControl : public AbstractComponent {
+		public:
+			/// @brief Enum for different driver control modes
+			enum class DriveControlMode {
+				ARCADE
+
+			};
+		private:
+			DriveControlMode driveControlMode;
+
+			std::function<void()> driveControl;
+
+			void bindDriveControl(void (DriveControl::*driveFunc)()) {
+				driveControl = std::bind(driveFunc, this);
+			}
+		protected:
+		public:
+			/// @brief Struct for different driver control speeds
+			/// @param turnSpeed Speed for turning
+			/// @param forwardBackSpeed Speed for forward/backward
+			struct DriveControlSpeed {
+				float turnSpeed = 2;
+				float forwardBackSpeed = 2;
+			};
+
+			/// @brief Args for drive control object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			struct DriveControlArgs {
+				AbstractComponentArgs abstractComponentArgs;
+			};
+
+			DriveControlSpeed opControlSpeed = {};
+
+			DriveControl(DriveControlArgs args) : 
+				AbstractComponent(args.abstractComponentArgs) {};
+
+			void opControl() override {
+				driveControl();
+			}
+
+			/// @brief Arcade control for drive control (recommended to use opControl instead)
+			void arcadeControl() {
+				float dir = -1 * master->get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
+				float turn = master->get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
+
+				dir *= opControlSpeed.forwardBackSpeed;
+				turn *= opControlSpeed.turnSpeed;
+				
+				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
+				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
+
+				chassis->left_mg.move(left_voltage);
+				chassis->right_mg.move(right_voltage);
+			}
+
+			/// @brief Fallback control that DriveControlMode switch statement defaults to.
+			void fallbackControl() {
+				arcadeControl();
+			}
+
+			/// @brief Sets the driver control mode
+			/// @param mode Mode to set the driver control to
+			void setDriveControlMode(DriveControlMode mode = DriveControlMode::ARCADE) {
+				driveControlMode = mode;
+
+				switch (driveControlMode) {
+					case DriveControlMode::ARCADE:
+						bindDriveControl(&DriveControl::arcadeControl);
+						break;
+					default:
+						bindDriveControl(&DriveControl::fallbackControl);
+						break;
+				}
+			}
+	};
+
 	// Fix circular dependency
 	class Chassis;
 
