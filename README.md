@@ -15,11 +15,14 @@ to allow for us to rapidly change and test different pieces of code when time is
 
 ## Chain of Command
 
+_This list does not contain all roles, only those most relevant to programming._
+
 1. **Principal _Software Engineer_** > [helloworld3200](https://github.com/helloworld3200)
-2. **Senior _Software Engineer_** > [YuvrajVerma09](https://github.com/YuvrajVerma09)
+2. **Senior _Software Engineer_** > [Aadi-L](https://github.com/Aadi-L)
 3. **Assistant _Software Engineer_** > [krishma2](https://github.com/krishma2)
 
-- **Principal _Engineer (formerly "Builder")_** > [1408H-Builder](https://github.com/1408H-Builder)
+-  **Principal _Engineer (formerly "Builder")_** > [1408H-Builder](https://github.com/1408H-Builder)
+- **Senior _Engineer (formerly "Builder")_** > [YuvrajVerma09](https://github.com/YuvrajVerma09)
 
 ## Included Libraries
 
