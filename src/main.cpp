@@ -581,14 +581,13 @@ namespace hyper {
 	}
 
 	/// @brief Struct for motor move bounds
-	struct MotorMoveBounds {
-		static constexpr std::int32_t MIN = -127;
-		static constexpr std::int32_t MAX = 127;
+	struct MotorBounds {
+		static constexpr std::int32_t MOVE_MIN = -127;
+		static constexpr std::int32_t MOVE_MAX = 127;
 	};
 
 	/// @brief Assert that a value is arithmetic
 	/// @param val Value to assert
-	/// @param errorMsg Error message to display if assertion fails
 	template <typename T>
 	void assertArithmetic(const T val) {
 		static_assert(std::is_arithmetic<T>::value, "Value must be arithmetic");
@@ -610,7 +609,7 @@ namespace hyper {
 		raw = std::round(raw);
 
 		int32_t voltage = static_cast<int32_t>(raw);
-		voltage = clamp(voltage, MotorMoveBounds::MIN, MotorMoveBounds::MAX);
+		voltage = clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
 
 		return voltage;
 	}
