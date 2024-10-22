@@ -332,20 +332,6 @@ namespace hyper {
 
 	class LiftMech : public AbstractMech {
 		private:
-			//bool engaged = false;
-			//bool lastPressed = false;
-
-			/*void pneumaticActuation() {
-				if (!lastPressed) {
-					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-					engaged = !engaged;
-					if (engaged) {
-						piston.set_value(true);
-					} else {
-						piston.set_value(false);
-					}
-				}
-			}*/
 		protected:
 		public:
 			/// @brief Args for mogo mech object
@@ -435,20 +421,6 @@ namespace hyper {
 				LiftMech* liftMech;
 			};
 		private:
-			//bool conveyerEngaged = false;
-
-			//bool btnLastPressed = false;
-
-			/*void moveConveyer() {
-				if (conveyerEngaged) {
-					conveyerMotors.move_velocity(0);
-					conveyerEngaged = false;
-				} else {
-					conveyerMotors.move_velocity(200);
-					conveyerEngaged = true;
-				}
-			}*/
-
 			ReqPointers reqPointers;
 		protected:
 		public:
