@@ -13,8 +13,23 @@
 Our code is hot-swappable, making heavy use of **abstract classes** and **templates**
 to allow for us to rapidly change and test different pieces of code when time is of the essence.
 
-## Included Libraries
-- Created with [`PROS` API](https://github.com/purduesigbots/pros)
-as this has better documentation.
+## Chain of Command
 
-#### Main file at `src/main.cpp`. To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
+1. **Principal _Software Engineer_** > [helloworld3200](https://github.com/helloworld3200)
+2. **Senior _Software Engineer_** > [YuvrajVerma09](https://github.com/YuvrajVerma09)
+3. **Assistant _Software Engineer_** > [krishma2](https://github.com/krishma2)
+
+- **Principal _Engineer (formerly "Builder")_** > [1408H-Builder](https://github.com/1408H-Builder)
+
+## Included Libraries
+
+- Created with [`PROS` API](https://github.com/purduesigbots/pros)
+as this has better documentation than the official VEX API.
+
+## Project Structure
+
+To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
+
+- **Main file** at `src/main.cpp`.
+- **Includes** in `include/main.h`.
+- **Options _(e.g. motor ports)_** in `include/options.h`
