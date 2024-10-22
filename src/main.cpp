@@ -428,6 +428,14 @@ namespace hyper {
 	}; // class MogoMech
 
 	class Conveyer : public AbstractComponent {
+		public:
+			/// @brief Args for pointers required for conveyer object
+			/// @param mogoMech Pointer to mogo mech object
+			/// @param liftMech Pointer to lift mech object
+			struct ReqPointers {
+				MogoMech* mogoMech;
+				LiftMech* liftMech;
+			};
 		private:
 			//bool conveyerEngaged = false;
 
@@ -443,7 +451,7 @@ namespace hyper {
 				}
 			}*/
 
-			MogoMech* mogoMech;
+			ReqPointers reqPointers;
 		protected:
 		public:
 			const pros::MotorGroup conveyerMotors;
@@ -455,7 +463,7 @@ namespace hyper {
 			struct ConveyerArgs {
 				AbstractComponentArgs abstractComponentArgs;
 				vector<std::int8_t> conveyerPorts;
-				MogoMech* mogoMech;
+				ReqPointers reqPointers;
 			};
 
 			struct Speeds {
@@ -474,11 +482,13 @@ namespace hyper {
 			Conveyer(ConveyerArgs args) :
 				AbstractComponent(args.abstractComponentArgs),
 				conveyerMotors(args.conveyerPorts),
-				mogoMech(args.mogoMech) {};
+				reqPointers(args.reqPointers) {};
 
 			void move(bool on, bool directionForward = true) {
-				bool mogoMechMoving = mogoMech->getEngaged();
-				bool moveConveyer = mogoMechMoving && on;
+				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
+				bool liftMechMoving = reqPointers.liftMech->getEngaged();
+
+				bool moveConveyer = mogoMechMoving && on || liftMechMoving && on;
 
 				if (moveConveyer) {
 					if (directionForward) {
@@ -556,8 +566,8 @@ namespace hyper {
 				dvt({this, args.dvtPorts}),
 				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
-				conveyer({this, args.conveyerPorts, &mogoMech}), 
-				liftMech({this, args.liftMechPort}) {};
+				liftMech({this, args.liftMechPort}), 
+				conveyer({this, args.conveyerPorts, {&mogoMech, &liftMech}}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -720,8 +730,6 @@ void autonomous() {
 		currentChassis->auton();
 	}
 }
-
-
 
 // Not used anymore, used to be for pneumatics testing
 void pneumaticstestcontrol () {
