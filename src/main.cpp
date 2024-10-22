@@ -24,32 +24,17 @@ namespace hyper {
 
 	int32_t prepareMoveVoltage(float raw);
 
+	// Class declarations
+
+
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
 		private:
 		protected:
-			pros::MotorGroup left_mg;
-			pros::MotorGroup right_mg;
-			pros::Controller master;
+			pros::Controller master{pros::E_CONTROLLER_MASTER};
 		public:
-			/// @brief Args for abstract chassis object
-			/// @param leftPorts Vector of ports for left side of drivetrain
-			/// @param rightPorts Vector of ports for right side of drivetrain
-			/// @param master Controller for robot
-			struct AbstractChassisArgs {
-				std::vector<std::int8_t> leftPorts;
-				std::vector<std::int8_t> rightPorts;
-				pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER;
-			};
-
 			/// @brief Creates abstract chassis object
-			/// @param args Args for abstract chassis object (check args struct for more info)
-			AbstractChassis(AbstractChassisArgs args) : 
-			left_mg(args.leftPorts), right_mg(args.rightPorts), 
-			master(args.master) {
-				string consoleMsg = fmt::format("Chassis created with left ports: {} and right ports: {}",
-				vectorToString(args.leftPorts), vectorToString(args.rightPorts));
-				pros::lcd::print(0, consoleMsg.c_str());
+			AbstractChassis() {
 																																																																														// :) u know what this does
 																																																																														#ifndef _HYPER_UNLOCK_66_75_63_6B
 																																																																															_HYPER_UNLEASH_HELL
@@ -57,18 +42,6 @@ namespace hyper {
 			};
 
 			virtual ~AbstractChassis() = default;
-
-			// Getters for motor groups and controller
-
-			/// @brief Gets the left motor group
-			pros::MotorGroup& getLeftMotorGroup() {
-				return left_mg;
-			}
-
-			/// @brief Gets the right motor group
-			pros::MotorGroup& getRightMotorGroup() {
-				return right_mg;
-			}
 
 			/// @brief Gets the controller
 			pros::Controller& getController() {
@@ -267,12 +240,19 @@ namespace hyper {
 				float forwardBackSpeed = 2;
 			};
 
+			/// @brief Ports for the drivetrain
+			/// @param leftPorts Vector of ports for left motors
+			/// @param rightPorts Vector of ports for right motors
+			struct DrivetrainPorts {
+				vector<std::int8_t> left;
+				vector<std::int8_t> right;
+			};
+
 			/// @brief Args for drivetrain object
 			/// @param abstractComponentArgs Args for AbstractComponent object
 			struct DrivetrainArgs {
 				AbstractComponentArgs abstractComponentArgs;
-				vector<std::int8_t> leftPorts;
-				vector<std::int8_t> rightPorts;
+				DrivetrainPorts ports;
 			};
 
 			DriveControlSpeed opControlSpeed = {};
@@ -281,8 +261,10 @@ namespace hyper {
 
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
-				left_mg(args.leftPorts),
-				right_mg(args.rightPorts) {};
+				left_mg(args.ports.left),
+				right_mg(args.ports.right) {
+					setDriveControlMode();
+				};
 
 			void opControl() override {
 				driveControl();
@@ -544,44 +526,22 @@ namespace hyper {
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
-		public:
-			/// @brief Enum for different driver control modes
-			enum class OpControlMode {
-				ARCADE
-
-			};
 		private:
-			OpControlMode opControlMode;
-			std::function<void()> opControlDrive;
-
-			void bindOpControlDrive(void (Chassis::*driveFunc)()) {
-				opControlDrive = std::bind(driveFunc, this);
-			}
 		protected:
 		public:
-			/// @brief Struct for different driver control speeds
-			/// @param turnSpeed Speed for turning
-			/// @param forwardBackSpeed Speed for forward/backward
-			struct OpControlSpeed {
-				float turnSpeed = 2;
-				float forwardBackSpeed = 2;
-			};
-
 			/// @brief Args for chassis object
-			/// @param abstractChassisArgs Args for abstract chassis object
-			/// @param opControlMode Mode for driver control
-			/// @param opControlSpeed Speed for driver control
-			/// @param autonSpeed Speed for auton control
+			/// @param dvtArgs Args for drivetrain object
 			/// @param mogoMechPort Port for mogo mech
+			/// @param liftMechPort Port for lift mech
+			/// @param conveyerPorts Vector of ports for conveyer motors
 			struct ChassisArgs {
-				AbstractChassisArgs abstractChassisArgs;
+				Drivetrain::DrivetrainPorts dvtPorts;
 				char mogoMechPort;
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
 			};
 
-			
-			OpControlSpeed opControlSpeed = {};
+			Drivetrain dvt;
 
 			Auton autonController;
 
@@ -592,19 +552,17 @@ namespace hyper {
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
-			Chassis(ChassisArgs args) : 
-				AbstractChassis(args.abstractChassisArgs), 
+			Chassis(ChassisArgs args) :  
+				dvt({this, args.dvtPorts}),
 				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
 				conveyer({this, args.conveyerPorts, &mogoMech}), 
-				liftMech({this, args.liftMechPort}) {
-					setOpControlMode();
-				};
+				liftMech({this, args.liftMechPort}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
-				opControlDrive();
+				dvt.opControl();
 				
 				// Run the mainloop for additional components
 				// Pneumatics
@@ -615,50 +573,9 @@ namespace hyper {
 				conveyer.opControl();
 			}
 
-			/// @brief Arcade control for drive control (recommended to use opControl instead)
-			void arcadeControl() {
-				float dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
-				float turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
-
-				dir *= opControlSpeed.forwardBackSpeed;
-				turn *= opControlSpeed.turnSpeed;
-				
-				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
-				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
-
-				left_mg.move(left_voltage);
-				right_mg.move(right_voltage);
-			}
-
-			/// @brief Fallback control that OpControlMode switch statement defaults to.
-			void fallbackControl() {
-				arcadeControl();
-			}
-
 			/// @brief Auton function for the chassis
 			void auton() override {
 				autonController.go();
-			}
-
-			/// @brief Sets the driver control mode
-			/// @param mode Mode to set the driver control to
-			void setOpControlMode(OpControlMode mode = OpControlMode::ARCADE) {
-				opControlMode = mode;
-
-				switch (opControlMode) {
-					case OpControlMode::ARCADE:
-						bindOpControlDrive(&Chassis::arcadeControl);
-						break;
-					default:
-						bindOpControlDrive(&Chassis::fallbackControl);
-						break;
-				}
-			}
-
-			/// @brief Gets the driver control mode
-			/// @return Driver control mode
-			OpControlMode getOpControlMode() {
-				return opControlMode;
 			}
 	}; // class Chassis
 
@@ -738,9 +655,10 @@ hyper::AbstractChassis* currentChassis;
  */
 
 void initDefaultChassis() {
-	static hyper::Chassis defaultChassis({{
-		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
-	}, MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
+	static hyper::Chassis defaultChassis({
+		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS}, 
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
+	
 	currentChassis = &defaultChassis;
 }
 
@@ -816,6 +734,8 @@ void pneumaticstestcontrol () {
 }
 
 void mainControl() {
+	pros::lcd::set_text(0, "> 1408Hyper mainControl ready");
+
 	if (AUTON_TEST) {
 		autonomous();
 	}
