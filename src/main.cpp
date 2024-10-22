@@ -307,7 +307,7 @@ namespace hyper {
 			/// @param leftVoltage Voltage for left motor
 			/// @param rightVoltage Voltage for right motor
 			/// @return Driver control mode
-			void moveVelocity(int16_t leftVoltage, int16_t rightVoltage) {
+			void moveVelocity(std::int16_t leftVoltage, std::int16_t rightVoltage) {
 				left_mg.move_velocity(leftVoltage);
 				right_mg.move_velocity(rightVoltage);
 			}
@@ -437,8 +437,8 @@ namespace hyper {
 			};
 
 			struct Speeds {
-				int fwd = 600;
-				int back = -600;
+				int fwd = 1000;
+				int back = -1000;
 			};
 
 			struct Buttons {
@@ -582,8 +582,8 @@ namespace hyper {
 
 	/// @brief Struct for motor move bounds
 	struct MotorMoveBounds {
-		static constexpr int32_t MIN = -127;
-		static constexpr int32_t MAX = 127;
+		static constexpr std::int32_t MIN = -127;
+		static constexpr std::int32_t MAX = 127;
 	};
 
 	/// @brief Assert that a value is arithmetic
