@@ -11,40 +11,28 @@
 // currently using legacy toggles (not using Toggle class):
 // liftmech, conveyer, mogomech
 
-// TODO: so much DRY violations >:((((( need more classes!!!!! (pneumaticcomponent)
-
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
 	// Function declarations
 	template <typename T>
 	string vectorToString(vector<T>& vec, string delimiter = ", ");
 
+	template <typename T>
+	T clamp(T val, T min, T max);
+
+	int32_t prepareMoveVoltage(float raw);
+
+	// Class declarations
+
+
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
 		private:
 		protected:
-			pros::MotorGroup left_mg;
-			pros::MotorGroup right_mg;
-			pros::Controller master;
+			pros::Controller master{pros::E_CONTROLLER_MASTER};
 		public:
-			/// @brief Args for abstract chassis object
-			/// @param leftPorts Vector of ports for left side of drivetrain
-			/// @param rightPorts Vector of ports for right side of drivetrain
-			/// @param master Controller for robot
-			struct AbstractChassisArgs {
-				std::vector<std::int8_t> leftPorts;
-				std::vector<std::int8_t> rightPorts;
-				pros::controller_id_e_t master = pros::E_CONTROLLER_MASTER;
-			};
-
 			/// @brief Creates abstract chassis object
-			/// @param args Args for abstract chassis object (check args struct for more info)
-			AbstractChassis(AbstractChassisArgs args) : 
-			left_mg(args.leftPorts), right_mg(args.rightPorts), 
-			master(args.master) {
-				string consoleMsg = fmt::format("Chassis created with left ports: {} and right ports: {}",
-				vectorToString(args.leftPorts), vectorToString(args.rightPorts));
-				pros::lcd::print(0, consoleMsg.c_str());
+			AbstractChassis() {
 																																																																														// :) u know what this does
 																																																																														#ifndef _HYPER_UNLOCK_66_75_63_6B
 																																																																															_HYPER_UNLEASH_HELL
@@ -52,18 +40,6 @@ namespace hyper {
 			};
 
 			virtual ~AbstractChassis() = default;
-
-			// Getters for motor groups and controller
-
-			/// @brief Gets the left motor group
-			pros::MotorGroup& getLeftMotorGroup() {
-				return left_mg;
-			}
-
-			/// @brief Gets the right motor group
-			pros::MotorGroup& getRightMotorGroup() {
-				return right_mg;
-			}
 
 			/// @brief Gets the controller
 			pros::Controller& getController() {
@@ -110,8 +86,10 @@ namespace hyper {
 
 	class AbstractMech : public AbstractComponent {
 		private:
-		protected:
+			bool engaged = false;
+
 			pros::adi::DigitalOut piston;
+		protected:
 		public:
 			/// @brief Args for abstract mech object
 			/// @param abstractComponentArgs Args for AbstractComponent object
@@ -131,6 +109,7 @@ namespace hyper {
 			/// @param value Value to set the piston to
 			void actuate(bool value) {
 				piston.set_value(value);
+				engaged = value;
 			}
 
 			/// @brief Gets the piston object
@@ -139,33 +118,45 @@ namespace hyper {
 				return piston;
 			}
 
+			/// @brief Gets the engaged state of the mech
+			/// @return Engaged state of the mech
+			bool getEngaged() {
+				return engaged;
+			}
+
 			virtual ~AbstractMech() = default;
 	}; // class AbstractMech
 
 	/// @brief Class for a toggle on the controller
 	class Toggle {
 		private:
+			struct ToggleFuncs {
+				std::function<void()> offFunc;
+				std::function<void()> onFunc;
+			};
+
 			bool lastPressed = false;
 
 			pros::Controller* master;
+			ToggleFuncs funcs;
 
 			void toggle() {
 				if (st.state) {
-					st.funcs.offFunc();
+					funcs.offFunc();
 					st.state = false;
 				} else {
-					st.funcs.onFunc();
+					funcs.onFunc();
 					st.state = true;
 				}
 			}
 		protected:
 		public:
-			/// @brief Struct for functions for toggle object
-			/// @param offFunc Function to toggle off
-			/// @param onFunc Function to toggle on
-			struct ToggleFuncs {
-				std::function<void()> offFunc;
-				std::function<void()> onFunc;
+			/// @brief Struct for static functions for toggle object
+			/// @param offFunc Function to toggle off (static)
+			/// @param onFunc Function to toggle on (static)
+			struct StaticFuncs {
+				void (AbstractComponent::*offFunc)();
+				void (AbstractComponent::*onFunc)();
 			};
 
 			/// @brief Static options for toggle object
@@ -174,7 +165,6 @@ namespace hyper {
 			/// @param state Initial state for toggle
 			struct StaticOptions {
 				pros::controller_digital_e_t btn;
-				ToggleFuncs funcs;
 				bool state = false;
 			};
 
@@ -183,6 +173,8 @@ namespace hyper {
 			/// @param st Static options for toggle object
 			struct ToggleArgs {
 				pros::Controller* master;
+				AbstractComponent* component;
+				StaticFuncs staticFuncs;
 				StaticOptions st;
 			};
 
@@ -192,6 +184,10 @@ namespace hyper {
 			/// @param args Args for toggle object (check args struct for more info)
 			Toggle(ToggleArgs args) : 
 				master(args.master), 
+				funcs({
+					std::bind(args.staticFuncs.offFunc, args.component), 
+					std::bind(args.staticFuncs.onFunc, args.component)
+				}),
 				st(args.st) {};
 
 			/// @brief Run every single loop to check if the button has been pressed
@@ -205,90 +201,137 @@ namespace hyper {
 					lastPressed = false;
 				}
 			}
+
+			/// @brief Gets the toggle functions
+			/// @return Toggle functions
+			ToggleFuncs& getFuncs() {
+				return funcs;
+			}
 	}; // class Toggle
 
-	class Conveyer : public AbstractComponent {
+	/// @brief Class for driver control
+	class Drivetrain : public AbstractComponent {
+		public:
+			/// @brief Enum for different driver control modes
+			enum class DriveControlMode {
+				ARCADE
+
+			};
 		private:
-			pros::MotorGroup conveyerMotors;
-			//bool conveyerEngaged = false;
+			pros::MotorGroup left_mg;
+			pros::MotorGroup right_mg;
 
-			//bool btnLastPressed = false;
+			DriveControlMode driveControlMode;
 
-			/*void moveConveyer() {
-				if (conveyerEngaged) {
-					conveyerMotors.move_velocity(0);
-					conveyerEngaged = false;
-				} else {
-					conveyerMotors.move_velocity(200);
-					conveyerEngaged = true;
-				}
-			}*/
+			std::function<void()> driveControl;
+
+			void bindDriveControl(void (Drivetrain::*driveFunc)()) {
+				driveControl = std::bind(driveFunc, this);
+			}
 		protected:
 		public:
-			/// @brief Args for conveyer object
+			/// @brief Struct for different driver control speeds
+			/// @param turnSpeed Speed for turning
+			/// @param forwardBackSpeed Speed for forward/backward
+			struct DriveControlSpeed {
+				float turnSpeed = 2;
+				float forwardBackSpeed = 2;
+			};
+
+			/// @brief Ports for the drivetrain
+			/// @param leftPorts Vector of ports for left motors
+			/// @param rightPorts Vector of ports for right motors
+			struct DrivetrainPorts {
+				vector<std::int8_t> left;
+				vector<std::int8_t> right;
+			};
+
+			/// @brief Args for drivetrain object
 			/// @param abstractComponentArgs Args for AbstractComponent object
-			/// @param conveyerPorts Vector of ports for conveyer motors
-			struct ConveyerArgs {
+			struct DrivetrainArgs {
 				AbstractComponentArgs abstractComponentArgs;
-				vector<std::int8_t> conveyerPorts;
+				DrivetrainPorts ports;
 			};
 
-			struct Speeds {
-				int fwd = 2000;
-				int back = -2000;
-			};
+			DriveControlSpeed driveControlSpeed = {};
 
-			struct Buttons {
-				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_L1;
-				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_L2;
-			};
+			std::int32_t maxRelativeVelocity = 1024;
 
-			Speeds speeds = {};
-			Buttons btns = {};
-
-			Conveyer(ConveyerArgs args) :
+			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
-				conveyerMotors(args.conveyerPorts) {};
-
-			void move(bool on, bool directionForward = true) {
-				if (on) {
-					if (directionForward) {
-						conveyerMotors.move_velocity(speeds.fwd);
-					} else {
-						conveyerMotors.move_velocity(speeds.back);
-					}
-				} else {
-					conveyerMotors.move_velocity(0);
-				}
-			}
+				left_mg(args.ports.left),
+				right_mg(args.ports.right) {
+					setDriveControlMode();
+				};
 
 			void opControl() override {
-				if (master->get_digital(btns.on)) {
-					move(true);
-				} else if (master->get_digital(btns.off)) {
-					move(true, false);
-				} else {
-					move(false);
+				driveControl();
+			}
+
+			/// @brief Arcade control for drive control (recommended to use opControl instead)
+			void arcadeControl() {
+				float dir = -1 * master->get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
+				float turn = master->get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
+
+				dir *= driveControlSpeed.forwardBackSpeed;
+				turn *= driveControlSpeed.turnSpeed;
+				
+				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
+				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
+
+				left_mg.move(left_voltage);
+				right_mg.move(right_voltage);
+			}
+
+			/// @brief Fallback control that DriveControlMode switch statement defaults to.
+			void fallbackControl() {
+				arcadeControl();
+			}
+
+			/// @brief Sets the driver control mode
+			/// @param mode Mode to set the driver control to
+			void setDriveControlMode(DriveControlMode mode = DriveControlMode::ARCADE) {
+				driveControlMode = mode;
+
+				switch (driveControlMode) {
+					case DriveControlMode::ARCADE:
+						bindDriveControl(&Drivetrain::arcadeControl);
+						break;
+					default:
+						bindDriveControl(&Drivetrain::fallbackControl);
+						break;
 				}
 			}
-	}; // class Conveyer
+
+			/// @brief Gets the driver control mode
+			/// @param leftVoltage Voltage for left motor
+			/// @param rightVoltage Voltage for right motor
+			/// @return Driver control mode
+			void moveVelocity(std::int16_t leftVoltage, std::int16_t rightVoltage) {
+				left_mg.move_velocity(leftVoltage);
+				right_mg.move_velocity(rightVoltage);
+			}
+
+			/// @brief Gets the driver control mode
+			/// @param pos Position to move to
+			void moveRelative(double pos) {
+				left_mg.move_relative(pos, maxRelativeVelocity);
+				right_mg.move_relative(pos, maxRelativeVelocity);
+			}
+
+			/// @brief Gets the left motor group
+			pros::MotorGroup& getLeftMotorGroup() {
+				return left_mg;
+			}
+
+			/// @brief Gets the right motor group
+			pros::MotorGroup& getRightMotorGroup() {
+				return right_mg;
+			}		
+	}; // class Drivetrain
 
 	class LiftMech : public AbstractMech {
 		private:
-			//bool engaged = false;
-			//bool lastPressed = false;
-
-			/*void pneumaticActuation() {
-				if (!lastPressed) {
-					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-					engaged = !engaged;
-					if (engaged) {
-						piston.set_value(true);
-					} else {
-						piston.set_value(false);
-					}
-				}
-			}*/
 		protected:
 		public:
 			/// @brief Args for mogo mech object
@@ -316,10 +359,10 @@ namespace hyper {
 			void opControl () override {
 				// Perform the actuation if this is the button has JUST been pressed
 				if (master->get_digital(btns.on)) {
-					piston.set_value(true);
+					actuate(true);
 					//pros::lcd::set_text(1, "L1 pressed");
 				} else if (master->get_digital(btns.off)) {
-					piston.set_value(false);
+					actuate(false);
 				}
 			}
 	}; // class LiftMech
@@ -334,9 +377,9 @@ namespace hyper {
 					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
 					engaged = !engaged;
 					if (engaged) {
-						piston.set_value(true);
+						actuate(true);
 					} else {
-						piston.set_value(false);
+						actuate(false);
 					}
 				}
 			}
@@ -368,6 +411,77 @@ namespace hyper {
 			}
 	}; // class MogoMech
 
+	class Conveyer : public AbstractComponent {
+		public:
+			/// @brief Args for pointers required for conveyer object
+			/// @param mogoMech Pointer to mogo mech object
+			/// @param liftMech Pointer to lift mech object
+			struct ReqPointers {
+				MogoMech* mogoMech;
+				LiftMech* liftMech;
+			};
+		private:
+			ReqPointers reqPointers;
+		protected:
+		public:
+			const pros::MotorGroup conveyerMotors;
+
+			/// @brief Args for conveyer object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param conveyerPorts Vector of ports for conveyer motors
+			/// @param mogoMech Pointer to mogo mech object
+			struct ConveyerArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				vector<std::int8_t> conveyerPorts;
+				ReqPointers reqPointers;
+			};
+
+			struct Speeds {
+				int fwd = 1000;
+				int back = -1000;
+			};
+
+			struct Buttons {
+				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_L1;
+				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_L2;
+			};
+
+			Speeds speeds = {};
+			Buttons btns = {};
+
+			Conveyer(ConveyerArgs args) :
+				AbstractComponent(args.abstractComponentArgs),
+				conveyerMotors(args.conveyerPorts),
+				reqPointers(args.reqPointers) {};
+
+			void move(bool on, bool directionForward = true) {
+				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
+				bool liftMechMoving = reqPointers.liftMech->getEngaged();
+
+				bool moveConveyer = mogoMechMoving && on || liftMechMoving && on;
+
+				if (moveConveyer) {
+					if (directionForward) {
+						conveyerMotors.move_velocity(speeds.fwd);
+					} else {
+						conveyerMotors.move_velocity(speeds.back);
+					}
+				} else {
+					conveyerMotors.move_velocity(0);
+				}
+			}
+
+			void opControl() override {
+				if (master->get_digital(btns.on)) {
+					move(true);
+				} else if (master->get_digital(btns.off)) {
+					move(true, false);
+				} else {
+					move(false);
+				}
+			}
+	}; // class Conveyer
+
 	// Fix circular dependency
 	class Chassis;
 
@@ -393,47 +507,21 @@ namespace hyper {
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
-			void componentsOpControl() {
-				// Run the mainloop for additional components
-				// Pneumatics
-				mogoMech.opControl();
-				liftMech.opControl();
-
-				// Motors
-				conveyer.opControl();
-			}
-
 		protected:
 		public:
-			/// @brief Enum for different driver control modes
-			enum class OpControlMode {
-				ARCADE
-
-			};
-
-			/// @brief Struct for different driver control speeds
-			/// @param turnSpeed Speed for turning
-			/// @param forwardBackSpeed Speed for forward/backward
-			struct OpControlSpeed {
-				int turnSpeed = 2;
-				int forwardBackSpeed = 2;
-			};
-
 			/// @brief Args for chassis object
-			/// @param abstractChassisArgs Args for abstract chassis object
-			/// @param opControlMode Mode for driver control
-			/// @param opControlSpeed Speed for driver control
-			/// @param autonSpeed Speed for auton control
+			/// @param dvtArgs Args for drivetrain object
 			/// @param mogoMechPort Port for mogo mech
+			/// @param liftMechPort Port for lift mech
+			/// @param conveyerPorts Vector of ports for conveyer motors
 			struct ChassisArgs {
-				AbstractChassisArgs abstractChassisArgs;
+				Drivetrain::DrivetrainPorts dvtPorts;
 				char mogoMechPort;
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
 			};
 
-			OpControlMode opControlMode = OpControlMode::ARCADE;
-			OpControlSpeed opControlSpeed = {};
+			Drivetrain dvt;
 
 			Auton autonController;
 
@@ -444,47 +532,25 @@ namespace hyper {
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
-			Chassis(ChassisArgs args) : 
-				AbstractChassis(args.abstractChassisArgs), 
+			Chassis(ChassisArgs args) :  
+				dvt({this, args.dvtPorts}),
 				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
-				conveyer({this, args.conveyerPorts}), 
-				liftMech({this, args.liftMechPort}) {};
+				liftMech({this, args.liftMechPort}), 
+				conveyer({this, args.conveyerPorts, {&mogoMech, &liftMech}}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
-				// Run the mainloop for additional components
-				componentsOpControl();
-
-				switch (opControlMode) {
-					case OpControlMode::ARCADE:
-						arcadeControl();
-						break;
-					default:
-						fallbackControl();
-						break;
-				}
-			}
-
-			/// @brief Arcade control for drive control (recommended to use opControl instead)
-			void arcadeControl() {
-				int dir = -1 * master.get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
-				int turn = master.get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
-
-				dir *= opControlSpeed.forwardBackSpeed;
-				turn *= opControlSpeed.turnSpeed;
+				dvt.opControl();
 				
-				int left_voltage = dir - turn;                      // Sets left motor voltage
-				int right_voltage = dir + turn;                     // Sets right motor voltage
+				// Run the mainloop for additional components
+				// Pneumatics
+				mogoMech.opControl();
+				liftMech.opControl();
 
-				left_mg.move(left_voltage);
-				right_mg.move(right_voltage);
-			}
-
-			/// @brief Fallback control that OpControlMode switch statement defaults to.
-			void fallbackControl() {
-				arcadeControl();
+				// Motors
+				conveyer.opControl();
 			}
 
 			/// @brief Auton function for the chassis
@@ -513,6 +579,40 @@ namespace hyper {
 
 		return oss.str();
 	}
+
+	/// @brief Struct for motor move bounds
+	struct MotorBounds {
+		static constexpr std::int32_t MOVE_MIN = -127;
+		static constexpr std::int32_t MOVE_MAX = 127;
+	};
+
+	/// @brief Assert that a value is arithmetic
+	/// @param val Value to assert
+	template <typename T>
+	void assertArithmetic(const T val) {
+		static_assert(std::is_arithmetic<T>::value, "Value must be arithmetic");
+	}
+
+	/// @brief Clamp a value between a min and max
+	/// @param val Value to clamp
+	/// @param min Minimum value
+	/// @param max Maximum value
+	template <typename T>
+	T clamp(const T val, const T min, const T max) {
+		assertArithmetic(val);
+
+		return std::max(min, std::min(val, max));
+	}
+
+	int32_t prepareMoveVoltage(float raw) {
+		// Round the number to the nearest integer
+		raw = std::round(raw);
+
+		int32_t voltage = static_cast<int32_t>(raw);
+		voltage = clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
+
+		return voltage;
+	}
 } // namespace hyper
 
 // Global variables
@@ -528,9 +628,10 @@ hyper::AbstractChassis* currentChassis;
  */
 
 void initDefaultChassis() {
-	static hyper::Chassis defaultChassis({{
-		LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS
-	}, MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
+	static hyper::Chassis defaultChassis({
+		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS}, 
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
+	
 	currentChassis = &defaultChassis;
 }
 
@@ -593,8 +694,6 @@ void autonomous() {
 	}
 }
 
-
-
 // Not used anymore, used to be for pneumatics testing
 void pneumaticstestcontrol () {
 	pros::lcd::set_text(0, "In testcontrol");
@@ -606,6 +705,8 @@ void pneumaticstestcontrol () {
 }
 
 void mainControl() {
+	pros::lcd::set_text(0, "> 1408Hyper mainControl ready");
+
 	if (AUTON_TEST) {
 		autonomous();
 	}

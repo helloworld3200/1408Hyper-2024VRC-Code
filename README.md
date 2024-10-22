@@ -13,9 +13,26 @@
 Our code is hot-swappable, making heavy use of **abstract classes** and **templates**
 to allow for us to rapidly change and test different pieces of code when time is of the essence.
 
-## Included Libraries
-- Created with [`PROS` API](https://github.com/purduesigbots/pros)
-as this has better documentation.
-- [**fmt**](https://fmt.dev/11.0/) for text formatting. Polyfill of C++20's `std::format` as  PROS currently doesn't support it.
+## Chain of Command
 
-#### Main file at `src/main.cpp`. To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
+_This list does not contain all roles, only those most relevant to programming._
+
+1. **Principal _Software Engineer_** > [helloworld3200](https://github.com/helloworld3200)
+2. **Senior _Software Engineer_** > [Aadi-L](https://github.com/Aadi-L)
+3. **Assistant _Software Engineer_** > [krishma2](https://github.com/krishma2)
+
+-  **Principal _Engineer (formerly "Builder")_** > [1408H-Builder](https://github.com/1408H-Builder)
+- **Senior _Engineer (formerly "Builder")_** > [YuvrajVerma09](https://github.com/YuvrajVerma09)
+
+## Included Libraries
+
+- Created with [`PROS` API](https://github.com/purduesigbots/pros)
+as this has better documentation than the official VEX API.
+
+## Project Structure
+
+To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads).
+
+- **Main file** at `src/main.cpp`.
+- **Includes** in `include/main.h`.
+- **Options _(e.g. motor ports)_** in `include/options.h`
