@@ -11,8 +11,6 @@
 // currently using legacy toggles (not using Toggle class):
 // liftmech, conveyer, mogomech
 
-// TODO: so much DRY violations >:((((( need more classes!!!!! (pneumaticcomponent)
-
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
 	// Function declarations

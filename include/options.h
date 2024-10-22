@@ -19,10 +19,7 @@
 // Motor ports for the conveyer
 #define CONVEYER_PORTS {11, -1}
 
-// Motor ports for the conveyer
-
 // Turn on/off auton and opcontrol
-// Both DO_AUTON and AUTON_TEST must be true for auton to run at the start of opcontrol
 #define DO_AUTON true
 #define DO_OP_CONTROL true
 
