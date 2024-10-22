@@ -632,13 +632,7 @@ namespace hyper {
 	T clamp(const T val, const T min, const T max) {
 		assertArithmetic(val);
 
-		if (val < min) {
-			return min;
-		} else if (val > max) {
-			return max;
-		} else {
-			return val;
-		}
+		return std::max(min, std::min(val, max));
 	}
 
 	int32_t prepareMoveVoltage(float raw) {
