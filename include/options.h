@@ -19,6 +19,7 @@
 // Motor ports for the conveyer
 #define CONVEYER_PORTS {11, -1}
 
+// Motor ports for the intake motor group
 #define INTAKE_PORTS {2, 3}
 
 // Turn on/off auton and opcontrol
