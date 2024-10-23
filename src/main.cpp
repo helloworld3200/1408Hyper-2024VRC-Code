@@ -369,17 +369,17 @@ namespace hyper {
 
 	class MogoMech : public AbstractMech {
 		private:
-			bool engaged = false;
 			bool lastPressed = false;
 
 			void processPress() {
 				if (!lastPressed) {
 					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-					engaged = !engaged;
+					bool engaged = getEngaged();
+
 					if (engaged) {
-						actuate(true);
-					} else {
 						actuate(false);
+					} else {
+						actuate(true);
 					}
 				}
 			}
