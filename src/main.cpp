@@ -454,6 +454,9 @@ namespace hyper {
 				conveyerMotors(args.conveyerPorts),
 				reqPointers(args.reqPointers) {};
 
+			/// @brief Move the motors in the specified direction according to speeds.
+			/// @param on Whether to stop or start the motors.
+			/// @param directionForward Direction to go.
 			void move(bool on, bool directionForward = true) {
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
 				bool liftMechMoving = reqPointers.liftMech->getEngaged();
@@ -481,6 +484,65 @@ namespace hyper {
 				}
 			}
 	}; // class Conveyer
+
+	class Intake : public AbstractComponent {
+		private:
+		protected:
+		public:
+			const pros::MotorGroup intakeMotors;
+
+			/// @brief Args for intake object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param intakePorts Vector of ports for intake motors
+			struct IntakeArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				vector<std::int8_t> intakePorts;
+			};
+
+			struct Speeds {
+				int fwd = 1000;
+				int back = -1000;
+			};
+
+			struct Buttons {
+				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_R1;
+				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_R2;
+			};
+
+			Speeds speeds = {};
+			Buttons btns = {};
+
+			/// @brief Constructor for intake object
+			/// @param args Args for intake object (see args struct for more info)
+			Intake(IntakeArgs args) :
+				AbstractComponent(args.abstractComponentArgs),
+				intakeMotors(args.intakePorts) {}
+
+			/// @brief Move the motors in the specified direction according to speeds.
+			/// @param on Whether to stop or start the motors.
+			/// @param directionForward Direction to go.
+			void move(bool on, bool directionForward = true) {
+				if (on) {
+					if (directionForward) {
+						intakeMotors.move_velocity(speeds.fwd);
+					} else {
+						intakeMotors.move_velocity(speeds.back);
+					}
+				} else {
+					intakeMotors.move_velocity(0);
+				}
+			}
+
+			void opControl() override {
+				if (master->get_digital(btns.on)) {
+					move(true);
+				} else if (master->get_digital(btns.off)) {
+					move(true, false);
+				} else {
+					move(false);
+				}
+			}
+	}; // class Intake
 
 	// Fix circular dependency
 	class Chassis;
@@ -519,6 +581,7 @@ namespace hyper {
 				char mogoMechPort;
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
+				vector<std::int8_t> intakePorts;
 			};
 
 			Drivetrain dvt;
@@ -529,15 +592,17 @@ namespace hyper {
 			LiftMech liftMech;
 
 			Conveyer conveyer;
+			Intake intake;
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) :  
 				dvt({this, args.dvtPorts}),
-				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
-				conveyer({this, args.conveyerPorts, {&mogoMech, &liftMech}}) {};
+				conveyer({this, args.conveyerPorts, {&mogoMech, &liftMech}}), 
+				intake({this, args.intakePorts}),
+				autonController(this) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -549,8 +614,9 @@ namespace hyper {
 				mogoMech.opControl();
 				liftMech.opControl();
 
-				// Motors
+				// Motor groups
 				conveyer.opControl();
+				intake.opControl();
 			}
 
 			/// @brief Auton function for the chassis
@@ -630,7 +696,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS}, 
-	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS});
 	
 	currentChassis = &defaultChassis;
 }
