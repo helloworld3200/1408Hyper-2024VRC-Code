@@ -82,6 +82,10 @@ namespace hyper {
 				return *chassis;
 			}
 
+			pros::Controller& getMaster() {
+				return *master;
+			}
+
 			virtual void opControl() = 0;
 
 			virtual ~AbstractComponent() = default;
@@ -138,8 +142,8 @@ namespace hyper {
 			const pros::MotorGroup mg;
 
 			struct Speeds {
-				int fwd = 1000;
-				int back = -1000;
+				int fwd = 10000;
+				int back = -10000;
 			};
 
 			/// @brief Args for abstract motor group object
@@ -264,12 +268,53 @@ namespace hyper {
 	}; // class Toggle
 
 	class BiToggle {
-		private:
+		public:
+			struct Buttons {
+				pros::controller_digital_e_t fwd;
+				pros::controller_digital_e_t back;
+			};
 
+			struct ToggleFuncs {
+				std::function<void()> offFunc;
+				std::function<void()> fwdFunc;
+				std::function<void()> backFunc;
+			};
+		private:
+			enum class State {
+				OFF,
+				FWD,
+				BACK
+			};
+
+			AbstractMG* component;
+			Buttons btns;
+			ToggleFuncs funcs;
+
+			pros::Controller* master;
+			
+			State state = State::OFF;
+			bool lastPressed = false;
 		protected:
 		public:
+			/// @brief Args for BiToggle object
+			/// @param component Component to toggle
+			/// @param btns Buttons for toggle
+			struct BiToggleArgs {
+				AbstractMG* component;
+				Buttons btns;
+				ToggleFuncs funcs;
+			};
+
+			/// @brief Creates BiToggle object
+			/// @param args Args for BiToggle object (check args struct for more info)
+			BiToggle(BiToggleArgs args) : 
+				component(args.component),
+				btns(args.btns),
+				funcs(args.funcs),
+				master(&args.component->getMaster()) {};
+
 			
-	};
+	}; // class BiToggle
 
 	/// @brief Class for driver control
 	class Drivetrain : public AbstractComponent {
