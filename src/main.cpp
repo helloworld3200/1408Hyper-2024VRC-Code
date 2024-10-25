@@ -567,15 +567,6 @@ namespace hyper {
 
 	class Conveyer : public AbstractMG {
 		public:
-			enum class State {
-				FWD,
-				BACK,
-				OFF
-			};
-
-			State state = State::OFF;
-			bool lastPressed = false;
-
 			/// @brief Args for pointers required for conveyer object
 			/// @param mogoMech Pointer to mogo mech object
 			/// @param liftMech Pointer to lift mech object
@@ -584,37 +575,10 @@ namespace hyper {
 				LiftMech* liftMech;
 			};
 
-			void processPress(pros::controller_digital_e_t btn) {
-				if (!lastPressed) {
-					if (state == State::OFF) {
-						if (btn == btns.fwd) {
-							move(true);
-							state = State::FWD;
-						} else if (btn == btns.back) {
-							move(true, false);
-							state = State::BACK;
-						}
-					} else if (state == State::FWD) {
-						if (btn == btns.fwd) {
-							move(false);
-							state = State::OFF;
-						} else if (btn == btns.back) {
-							move(true, false);
-							state = State::BACK;
-						}
-					} else if (state == State::BACK) {
-						if (btn == btns.fwd) {
-							move(true);
-							state = State::FWD;
-						} else if (btn == btns.back) {
-							move(false);
-							state = State::OFF;
-						}
-					}
-				}
-			}
 		private:
 			ReqPointers reqPointers;
+
+			BiToggle toggle;
 		protected:
 		public:
 
@@ -636,7 +600,11 @@ namespace hyper {
 
 			Conveyer(ConveyerArgs args) :
 				AbstractMG(args.abstractMGArgs), 
-				reqPointers(args.reqPointers) {};
+				reqPointers(args.reqPointers),
+				toggle({this, {
+					pros::E_CONTROLLER_DIGITAL_L1,
+					pros::E_CONTROLLER_DIGITAL_L2
+				}}) {};
 
 			bool canMove(bool on) override {
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
@@ -648,58 +616,13 @@ namespace hyper {
 			}
 
 			void opControl() override {
-				if (master->get_digital(btns.fwd)) {
-					processPress(btns.fwd);
-					lastPressed = true;
-				} else if (master->get_digital(btns.back)) {
-					processPress(btns.back);
-					lastPressed = true;
-				} else {
-					lastPressed = false;
-				}
+				toggle.opControl();
 			}
 	}; // class Conveyer
 
 	class Intake : public AbstractMG {
 		private:
-			enum class State {
-				FWD,
-				BACK,
-				OFF
-			};
-
-			State state = State::OFF;
-			bool lastPressed = false;
-
-			void processPress(pros::controller_digital_e_t btn) {
-				if (!lastPressed) {
-					if (state == State::OFF) {
-						if (btn == btns.fwd) {
-							move(true);
-							state = State::FWD;
-						} else if (btn == btns.back) {
-							move(true, false);
-							state = State::BACK;
-						}
-					} else if (state == State::FWD) {
-						if (btn == btns.fwd) {
-							move(false);
-							state = State::OFF;
-						} else if (btn == btns.back) {
-							move(true, false);
-							state = State::BACK;
-						}
-					} else if (state == State::BACK) {
-						if (btn == btns.fwd) {
-							move(true);
-							state = State::FWD;
-						} else if (btn == btns.back) {
-							move(false);
-							state = State::OFF;
-						}
-					}
-				}
-			}
+			BiToggle toggle;
 		protected:
 		public:
 			/// @brief Args for intake object
@@ -715,33 +638,23 @@ namespace hyper {
 				int back = -1000;
 			};
 
-			struct Buttons {
-				pros::controller_digital_e_t fwd = pros::E_CONTROLLER_DIGITAL_R1;
-				pros::controller_digital_e_t back = pros::E_CONTROLLER_DIGITAL_R2;
-			};
-
 			Speeds speeds = {};
-			Buttons btns = {};
 
 			/// @brief Constructor for intake object
 			/// @param args Args for intake object (see args struct for more info)
 			Intake(IntakeArgs args) :
-				AbstractMG(args.abstractMGArgs) {}
+				AbstractMG(args.abstractMGArgs),
+				toggle({this, {
+					pros::E_CONTROLLER_DIGITAL_R1,
+					pros::E_CONTROLLER_DIGITAL_R2
+				}}) {}
 
 			bool canMove(bool on) override {
 				return on;
 			}
 
 			void opControl() override {
-				if (master->get_digital(btns.fwd)) {
-					processPress(btns.fwd);
-					lastPressed = true;
-				} else if (master->get_digital(btns.back)) {
-					processPress(btns.back);
-					lastPressed = true;
-				} else {
-					lastPressed = false;
-				}
+				toggle.opControl();
 			}
 	}; // class Intake
 
