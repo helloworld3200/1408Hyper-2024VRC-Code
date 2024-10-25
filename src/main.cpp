@@ -14,6 +14,8 @@
 // TODO: upgrade the following to use BiToggle class:
 // conveyer, intake (needs to be upgraded to use AbstractMG class first)
 
+// TODO: Create drivetrain utility functions e.g. forward, turn degrees, etc.
+
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
 	// Function declarations
@@ -267,18 +269,8 @@ namespace hyper {
 			}
 	}; // class Toggle
 
-	class BiToggle {
-		public:
-			struct Buttons {
-				pros::controller_digital_e_t fwd;
-				pros::controller_digital_e_t back;
-			};
-
-			struct ToggleFuncs {
-				std::function<void()> offFunc;
-				std::function<void()> fwdFunc;
-				std::function<void()> backFunc;
-			};
+	/// @brief Class for a toggle on the controller
+	class BiToggle { // Don't need to derive from AbstractComponent because no need for Chassis pointer
 		private:
 			enum class State {
 				OFF,
@@ -287,33 +279,79 @@ namespace hyper {
 			};
 
 			AbstractMG* component;
-			Buttons btns;
-			ToggleFuncs funcs;
 
 			pros::Controller* master;
 			
 			State state = State::OFF;
-			bool lastPressed = false;
+			bool isNewPress = true;
+
+			void moveState(State target) {
+				switch (target) {
+					case State::OFF:
+						component->move(false);
+						break;
+					case State::FWD:
+						component->move(true);
+						break;
+					case State::BACK:
+						component->move(true, false);
+						break;
+				}
+				state = target;
+			}
+
+			void handleFwdBtn() {
+				if (state == State::FWD) {
+					moveState(State::OFF);
+				} else {
+					moveState(State::FWD);
+				}
+			}
+
+			void handleBackBtn() {
+				if (state == State::BACK) {
+					moveState(State::OFF);
+				} else {
+					moveState(State::BACK);
+				}
+			}
 		protected:
 		public:
+			/// @brief Struct for buttons for BiToggle object
+			/// @param fwd Button for forward
+			/// @param back Button for backward
+			struct Buttons {
+				pros::controller_digital_e_t fwd;
+				pros::controller_digital_e_t back;
+			};
+
 			/// @brief Args for BiToggle object
 			/// @param component Component to toggle
 			/// @param btns Buttons for toggle
 			struct BiToggleArgs {
 				AbstractMG* component;
 				Buttons btns;
-				ToggleFuncs funcs;
 			};
+
+			Buttons btns;
 
 			/// @brief Creates BiToggle object
 			/// @param args Args for BiToggle object (check args struct for more info)
 			BiToggle(BiToggleArgs args) : 
 				component(args.component),
 				btns(args.btns),
-				funcs(args.funcs),
 				master(&args.component->getMaster()) {};
 
-			
+			void opControl() {
+				isNewPress = true;
+				if (master->get_digital(btns.fwd)) {
+					handleFwdBtn();
+					isNewPress = false;
+				} else if (master->get_digital(btns.back)) {
+					handleBackBtn();
+					isNewPress = false;
+				}
+			}
 	}; // class BiToggle
 
 	/// @brief Class for driver control
@@ -591,7 +629,7 @@ namespace hyper {
 				AbstractMG(args.abstractMGArgs), 
 				reqPointers(args.reqPointers) {};
 
-			bool canMove(bool on) {
+			bool canMove(bool on) override {
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
 				bool liftMechMoving = reqPointers.liftMech->getEngaged();
 
