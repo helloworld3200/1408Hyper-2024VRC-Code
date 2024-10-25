@@ -343,13 +343,22 @@ namespace hyper {
 				master(&args.component->getMaster()) {};
 
 			void opControl() {
-				isNewPress = true;
-				if (master->get_digital(btns.fwd)) {
+				bool fwdPressed = master->get_digital(btns.fwd);
+				bool backPressed = master->get_digital(btns.back);
+
+				if (fwdPressed && backPressed) {
+					// Don't do anything if both are pressed
+					return;
+				}
+
+				if (fwdPressed) {
 					handleFwdBtn();
 					isNewPress = false;
-				} else if (master->get_digital(btns.back)) {
+				} else if (backPressed) {
 					handleBackBtn();
 					isNewPress = false;
+				} else {
+					isNewPress = true;
 				}
 			}
 	}; // class BiToggle
