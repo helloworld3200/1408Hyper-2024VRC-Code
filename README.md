@@ -13,6 +13,8 @@
 Our code is hot-swappable, making heavy use of **abstract classes** and **templates**
 to allow for us to rapidly change and test different pieces of code when time is of the essence.
 
+Additionally, our code features a [**custom built CI/CD testing suite via GitHub Actions.**](https://github.com/helloworld3200/1408Hyper-2024VRC-Code/actions/workflows/c-cpp.yml) - the only purpose-made one that exists in the entire world at the time of writing.
+
 ## Chain of Command
 
 _This list does not contain all roles, only those most relevant to programming._
