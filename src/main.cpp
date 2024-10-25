@@ -8,8 +8,13 @@
 
 // ending in -mech classes are for pneumatics
 
-// currently using legacy toggles (not using Toggle class):
-// liftmech, conveyer, mogomech
+// currently using legacy toggles (not using MechToggle class):
+// mogomech
+
+// TODO: upgrade the following to use BiToggle class:
+// conveyer, intake (needs to be upgraded to use AbstractMG class first)
+
+// TODO: Create drivetrain utility functions e.g. forward, turn degrees, etc.
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
@@ -79,6 +84,10 @@ namespace hyper {
 				return *chassis;
 			}
 
+			pros::Controller& getMaster() {
+				return *master;
+			}
+
 			virtual void opControl() = 0;
 
 			virtual ~AbstractComponent() = default;
@@ -127,8 +136,59 @@ namespace hyper {
 			virtual ~AbstractMech() = default;
 	}; // class AbstractMech
 
+	/// @brief Abstract motor group class for if you want a custom motor group class
+	class AbstractMG : public AbstractComponent {
+		private:		
+		protected:
+		public:
+			const pros::MotorGroup mg;
+
+			struct Speeds {
+				int fwd = 10000;
+				int back = -10000;
+			};
+
+			/// @brief Args for abstract motor group object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param ports Vector of ports for motor group
+			struct AbstractMGArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				vector<std::int8_t> ports;
+			};
+
+			Speeds speeds = {};
+
+			/// @brief Constructor for abstract motor group object
+			/// @param args Args for abstract motor group object (check args struct for more info)
+			AbstractMG(AbstractMGArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				mg(args.ports) {};
+
+			/// @brief Move the motors in the specified direction according to speeds.
+			/// @param on Whether to stop or start the motors.
+			/// @param directionForward Direction to go.
+			void move(bool on, bool directionForward = true) {
+				on = canMove(on);
+
+				if (on) {
+					if (directionForward) {
+						mg.move_velocity(speeds.fwd);
+					} else {
+						mg.move_velocity(speeds.back);
+					}
+				} else {
+					mg.move_velocity(0);
+				}
+			}
+
+			virtual bool canMove(bool on) = 0;
+
+			virtual ~AbstractMG() = default;
+			
+	}; // class AbstractMG
+
 	/// @brief Class for a toggle on the controller
-	class Toggle {
+	class MechToggle {
 		private:
 			struct ToggleFuncs {
 				std::function<void()> offFunc;
@@ -155,8 +215,8 @@ namespace hyper {
 			/// @param offFunc Function to toggle off (static)
 			/// @param onFunc Function to toggle on (static)
 			struct StaticFuncs {
-				void (AbstractComponent::*offFunc)();
-				void (AbstractComponent::*onFunc)();
+				void (AbstractMech::*offFunc)();
+				void (AbstractMech::*onFunc)();
 			};
 
 			/// @brief Static options for toggle object
@@ -171,9 +231,9 @@ namespace hyper {
 			/// @brief Args for toggle object
 			/// @param master Controller for robot
 			/// @param st Static options for toggle object
-			struct ToggleArgs {
+			struct MechToggleArgs {
 				pros::Controller* master;
-				AbstractComponent* component;
+				AbstractMech* component;
 				StaticFuncs staticFuncs;
 				StaticOptions st;
 			};
@@ -182,7 +242,7 @@ namespace hyper {
 
 			/// @brief Creates toggle object
 			/// @param args Args for toggle object (check args struct for more info)
-			Toggle(ToggleArgs args) : 
+			MechToggle(MechToggleArgs args) : 
 				master(args.master), 
 				funcs({
 					std::bind(args.staticFuncs.offFunc, args.component), 
@@ -208,6 +268,100 @@ namespace hyper {
 				return funcs;
 			}
 	}; // class Toggle
+
+	/// @brief Class for a toggle on the controller
+	class BiToggle { // Don't need to derive from AbstractComponent because no need for Chassis pointer
+		private:
+			enum class State {
+				OFF,
+				FWD,
+				BACK
+			};
+
+			AbstractMG* component;
+
+			pros::Controller* master;
+			
+			State state = State::OFF;
+			bool isNewPress = true;
+
+			void moveState(State target) {
+				switch (target) {
+					case State::OFF:
+						component->move(false);
+						break;
+					case State::FWD:
+						component->move(true);
+						break;
+					case State::BACK:
+						component->move(true, false);
+						break;
+				}
+				state = target;
+			}
+
+			void handleFwdBtn() {
+				if (state == State::FWD) {
+					moveState(State::OFF);
+				} else {
+					moveState(State::FWD);
+				}
+			}
+
+			void handleBackBtn() {
+				if (state == State::BACK) {
+					moveState(State::OFF);
+				} else {
+					moveState(State::BACK);
+				}
+			}
+		protected:
+		public:
+			/// @brief Struct for buttons for BiToggle object
+			/// @param fwd Button for forward
+			/// @param back Button for backward
+			struct Buttons {
+				pros::controller_digital_e_t fwd;
+				pros::controller_digital_e_t back;
+			};
+
+			/// @brief Args for BiToggle object
+			/// @param component Component to toggle
+			/// @param btns Buttons for toggle
+			struct BiToggleArgs {
+				AbstractMG* component;
+				Buttons btns;
+			};
+
+			Buttons btns;
+
+			/// @brief Creates BiToggle object
+			/// @param args Args for BiToggle object (check args struct for more info)
+			BiToggle(BiToggleArgs args) : 
+				component(args.component),
+				btns(args.btns),
+				master(&args.component->getMaster()) {};
+
+			void opControl() {
+				bool fwdPressed = master->get_digital(btns.fwd);
+				bool backPressed = master->get_digital(btns.back);
+
+				if (fwdPressed && backPressed) {
+					// Don't do anything if both are pressed
+					return;
+				}
+
+				if (fwdPressed) {
+					handleFwdBtn();
+					isNewPress = false;
+				} else if (backPressed) {
+					handleBackBtn();
+					isNewPress = false;
+				} else {
+					isNewPress = true;
+				}
+			}
+	}; // class BiToggle
 
 	/// @brief Class for driver control
 	class Drivetrain : public AbstractComponent {
@@ -369,17 +523,17 @@ namespace hyper {
 
 	class MogoMech : public AbstractMech {
 		private:
-			bool engaged = false;
 			bool lastPressed = false;
 
 			void processPress() {
 				if (!lastPressed) {
 					//pros::lcd::set_text(1, "A ENGAGED NOT PRESSED");
-					engaged = !engaged;
+					bool engaged = getEngaged();
+
 					if (engaged) {
-						actuate(true);
-					} else {
 						actuate(false);
+					} else {
+						actuate(true);
 					}
 				}
 			}
@@ -411,7 +565,7 @@ namespace hyper {
 			}
 	}; // class MogoMech
 
-	class Conveyer : public AbstractComponent {
+	class Conveyer : public AbstractMG {
 		public:
 			/// @brief Args for pointers required for conveyer object
 			/// @param mogoMech Pointer to mogo mech object
@@ -420,20 +574,63 @@ namespace hyper {
 				MogoMech* mogoMech;
 				LiftMech* liftMech;
 			};
+
 		private:
 			ReqPointers reqPointers;
+
+			BiToggle toggle;
 		protected:
 		public:
-			const pros::MotorGroup conveyerMotors;
 
 			/// @brief Args for conveyer object
-			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param abstractMGArgs Args for AbstractMG object
 			/// @param conveyerPorts Vector of ports for conveyer motors
 			/// @param mogoMech Pointer to mogo mech object
 			struct ConveyerArgs {
-				AbstractComponentArgs abstractComponentArgs;
-				vector<std::int8_t> conveyerPorts;
+				AbstractMGArgs abstractMGArgs;
 				ReqPointers reqPointers;
+			};
+
+			struct Buttons {
+				pros::controller_digital_e_t fwd = pros::E_CONTROLLER_DIGITAL_L1;
+				pros::controller_digital_e_t back = pros::E_CONTROLLER_DIGITAL_L2;
+			};
+
+			Buttons btns = {};
+
+			Conveyer(ConveyerArgs args) :
+				AbstractMG(args.abstractMGArgs), 
+				reqPointers(args.reqPointers),
+				toggle({this, {
+					pros::E_CONTROLLER_DIGITAL_L1,
+					pros::E_CONTROLLER_DIGITAL_L2
+				}}) {};
+
+			bool canMove(bool on) override {
+				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
+				bool liftMechMoving = reqPointers.liftMech->getEngaged();
+
+				bool moveConveyer = mogoMechMoving && on || liftMechMoving && on;
+
+				return moveConveyer;
+			}
+
+			void opControl() override {
+				toggle.opControl();
+			}
+	}; // class Conveyer
+
+	class Intake : public AbstractMG {
+		private:
+			BiToggle toggle;
+		protected:
+		public:
+			/// @brief Args for intake object
+			/// @param abstractMGArgs Args for AbstractMG object
+			/// @param intakePorts Vector of ports for intake motors
+			struct IntakeArgs {
+				AbstractMGArgs abstractMGArgs;
+				vector<std::int8_t> intakePorts;
 			};
 
 			struct Speeds {
@@ -441,46 +638,25 @@ namespace hyper {
 				int back = -1000;
 			};
 
-			struct Buttons {
-				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_L1;
-				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_L2;
-			};
-
 			Speeds speeds = {};
-			Buttons btns = {};
 
-			Conveyer(ConveyerArgs args) :
-				AbstractComponent(args.abstractComponentArgs),
-				conveyerMotors(args.conveyerPorts),
-				reqPointers(args.reqPointers) {};
+			/// @brief Constructor for intake object
+			/// @param args Args for intake object (see args struct for more info)
+			Intake(IntakeArgs args) :
+				AbstractMG(args.abstractMGArgs),
+				toggle({this, {
+					pros::E_CONTROLLER_DIGITAL_R1,
+					pros::E_CONTROLLER_DIGITAL_R2
+				}}) {}
 
-			void move(bool on, bool directionForward = true) {
-				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
-				bool liftMechMoving = reqPointers.liftMech->getEngaged();
-
-				bool moveConveyer = mogoMechMoving && on || liftMechMoving && on;
-
-				if (moveConveyer) {
-					if (directionForward) {
-						conveyerMotors.move_velocity(speeds.fwd);
-					} else {
-						conveyerMotors.move_velocity(speeds.back);
-					}
-				} else {
-					conveyerMotors.move_velocity(0);
-				}
+			bool canMove(bool on) override {
+				return on;
 			}
 
 			void opControl() override {
-				if (master->get_digital(btns.on)) {
-					move(true);
-				} else if (master->get_digital(btns.off)) {
-					move(true, false);
-				} else {
-					move(false);
-				}
+				toggle.opControl();
 			}
-	}; // class Conveyer
+	}; // class Intake
 
 	// Fix circular dependency
 	class Chassis;
@@ -519,6 +695,7 @@ namespace hyper {
 				char mogoMechPort;
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
+				vector<std::int8_t> intakePorts;
 			};
 
 			Drivetrain dvt;
@@ -529,15 +706,17 @@ namespace hyper {
 			LiftMech liftMech;
 
 			Conveyer conveyer;
+			Intake intake;
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) :  
 				dvt({this, args.dvtPorts}),
-				autonController(this), 
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
-				conveyer({this, args.conveyerPorts, {&mogoMech, &liftMech}}) {};
+				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
+				intake({this, args.intakePorts}),
+				autonController(this) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -549,8 +728,9 @@ namespace hyper {
 				mogoMech.opControl();
 				liftMech.opControl();
 
-				// Motors
+				// Motor groups
 				conveyer.opControl();
+				intake.opControl();
 			}
 
 			/// @brief Auton function for the chassis
@@ -630,7 +810,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS}, 
-	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS});
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS});
 	
 	currentChassis = &defaultChassis;
 }
