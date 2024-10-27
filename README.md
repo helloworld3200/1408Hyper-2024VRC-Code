@@ -23,8 +23,8 @@ _This list does not contain all roles, only those most relevant to programming._
 2. **Senior _Software Engineer_** > [Aadi-L](https://github.com/Aadi-L)
 3. **Assistant _Software Engineer_** > [krishma2](https://github.com/krishma2)
 
--  **Principal _Engineer (formerly "Builder")_** > [1408H-Builder](https://github.com/1408H-Builder)
-- **Senior _Engineer (formerly "Builder")_** > [YuvrajVerma09](https://github.com/YuvrajVerma09)
+-  **Principal _Mechanical Engineer (formerly "Builder")_** > [1408H-Builder](https://github.com/1408H-Builder)
+- **Senior _Mechanical Engineer (formerly "Builder")_** > [YuvrajVerma09](https://github.com/YuvrajVerma09)
 
 ## Included Libraries
 
