@@ -25,7 +25,7 @@ namespace hyper {
 	template <typename T>
 	T clamp(T val, T min, T max);
 
-	int32_t prepareMoveVoltage(float raw);
+	std::int32_t prepareMoveVoltage(float raw);
 
 	// Class declarations
 
@@ -430,8 +430,8 @@ namespace hyper {
 				dir *= driveControlSpeed.forwardBackSpeed;
 				turn *= driveControlSpeed.turnSpeed;
 				
-				int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
-				int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
+				std::int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
+				std::int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
@@ -784,11 +784,11 @@ namespace hyper {
 		return std::max(min, std::min(val, max));
 	}
 
-	int32_t prepareMoveVoltage(float raw) {
+	std::int32_t prepareMoveVoltage(float raw) {
 		// Round the number to the nearest integer
 		raw = std::round(raw);
 
-		int32_t voltage = static_cast<int32_t>(raw);
+		std::int32_t voltage = static_cast<std::int32_t>(raw);
 		voltage = clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
 
 		return voltage;
