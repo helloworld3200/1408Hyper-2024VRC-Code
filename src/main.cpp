@@ -675,7 +675,6 @@ namespace hyper {
 				chassis(chassis) {};
 
 			void go() {
-				// TODO: Implement auton
 				driveSector1();
 			};
 
