@@ -662,7 +662,7 @@ namespace hyper {
 	class Chassis;
 
 	/// @brief Main auton class
-	class Auton {
+	class MatchAuton {
 		private:
 			Chassis* chassis;
 		protected:
@@ -671,7 +671,7 @@ namespace hyper {
 
 			/// @brief Creates auton object
 			/// @param chassis Pointer to chassis object
-			Auton(Chassis* chassis) : 
+			MatchAuton(Chassis* chassis) : 
 				chassis(chassis) {};
 
 			void go() {
@@ -700,7 +700,7 @@ namespace hyper {
 
 			Drivetrain dvt;
 
-			Auton autonController;
+			MatchAuton autonController;
 
 			MogoMech mogoMech;
 			LiftMech liftMech;
