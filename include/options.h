@@ -5,8 +5,8 @@
 
 // Variables (u can change these!!)
 #define DELAY_TIME_MS 20
-// turn on for auton to be run at the start of opcontrol
-#define AUTON_TEST false
+// Turn on for match auton to be run at the start of opcontrol
+#define MATCH_AUTON_TEST false
 
 #define CURRENT_OPCONTROL mainControl
 
@@ -23,7 +23,7 @@
 #define INTAKE_PORTS {-2, 3}
 
 // Turn on/off auton and opcontrol
-#define DO_AUTON true
+#define DO_MATCH_AUTON true
 #define DO_OP_CONTROL true
 
 // Ports for the drivetrain motors

@@ -872,7 +872,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	if (DO_AUTON) {
+	if (DO_MATCH_AUTON) {
 		currentChassis->auton();
 	}
 }
@@ -890,7 +890,7 @@ void pneumaticstestcontrol () {
 void mainControl() {
 	pros::lcd::set_text(0, "> 1408Hyper mainControl ready");
 
-	if (AUTON_TEST) {
+	if (MATCH_AUTON_TEST) {
 		autonomous();
 	}
 
