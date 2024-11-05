@@ -665,6 +665,10 @@ namespace hyper {
 	class MatchAuton {
 		private:
 			Chassis* chassis;
+
+			void driveSector1() {
+				
+			};
 		protected:
 		public:
 			int speed = 100;
@@ -676,10 +680,6 @@ namespace hyper {
 
 			void go() {
 				driveSector1();
-			};
-
-			void driveSector1() {
-				
 			};
 	}; // class Auton
 
