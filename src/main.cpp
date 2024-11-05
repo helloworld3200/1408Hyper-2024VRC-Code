@@ -676,6 +676,10 @@ namespace hyper {
 
 			void go() {
 				// TODO: Implement auton
+				driveSector1();
+			};
+
+			void driveSector1() {
 				
 			};
 	}; // class Auton
