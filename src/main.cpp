@@ -348,7 +348,7 @@ namespace hyper {
 
 				if (fwdPressed && backPressed) {
 					// Don't do anything if both are pressed
-					return;
+					//return;
 				}
 
 				if (fwdPressed) {
@@ -591,19 +591,12 @@ namespace hyper {
 				ReqPointers reqPointers;
 			};
 
-			struct Buttons {
-				pros::controller_digital_e_t fwd = pros::E_CONTROLLER_DIGITAL_L1;
-				pros::controller_digital_e_t back = pros::E_CONTROLLER_DIGITAL_L2;
-			};
-
-			Buttons btns = {};
-
 			Conveyer(ConveyerArgs args) :
 				AbstractMG(args.abstractMGArgs), 
 				reqPointers(args.reqPointers),
 				toggle({this, {
-					pros::E_CONTROLLER_DIGITAL_L1,
-					pros::E_CONTROLLER_DIGITAL_L2
+					pros::E_CONTROLLER_DIGITAL_L2,
+					pros::E_CONTROLLER_DIGITAL_L1
 				}}) {};
 
 			bool canMove(bool on) override {
@@ -667,7 +660,7 @@ namespace hyper {
 			Chassis* chassis;
 
 			void driveSector1() {
-				
+				  
 			};
 		protected:
 		public:
