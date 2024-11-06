@@ -27,6 +27,9 @@ namespace hyper {
 
 	std::int32_t prepareMoveVoltage(float raw);
 
+	template <typename T>
+	bool isNumBetween(T num, T min, T max);
+
 	// Class declarations
 
 
@@ -379,6 +382,8 @@ namespace hyper {
 			pros::MotorGroup left_mg;
 			pros::MotorGroup right_mg;
 
+			pros::IMU imu;
+
 			DriveControlMode driveControlMode;
 
 			std::function<void()> driveControl;
@@ -402,6 +407,7 @@ namespace hyper {
 			struct DrivetrainPorts {
 				vector<std::int8_t> left;
 				vector<std::int8_t> right;
+				std::int8_t imuPort;
 			};
 
 			/// @brief Args for drivetrain object
@@ -414,12 +420,17 @@ namespace hyper {
 			DriveControlSpeed driveControlSpeed = {};
 
 			std::int32_t maxRelativeVelocity = 1024;
+			std::int8_t maxRelativeError = 5;
+
+			uint32_t moveDelayMs = 2;
 
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
-				right_mg(args.ports.right) {
+				right_mg(args.ports.right),
+				imu(args.ports.imuPort) {
 					setDriveControlMode();
+					calibrateIMU();
 				};
 
 			void opControl() override {
@@ -446,6 +457,12 @@ namespace hyper {
 				arcadeControl();
 			}
 
+			/// @brief Calibrates the IMU
+			void calibrateIMU() {
+				imu.reset();
+				imu.tare();
+			}
+
 			/// @brief Sets the driver control mode
 			/// @param mode Mode to set the driver control to
 			void setDriveControlMode(DriveControlMode mode = DriveControlMode::ARCADE) {
@@ -461,20 +478,49 @@ namespace hyper {
 				}
 			}
 
-			/// @brief Gets the driver control mode
+			/// @brief Sets movement velocity
 			/// @param leftVoltage Voltage for left motor
 			/// @param rightVoltage Voltage for right motor
-			/// @return Driver control mode
 			void moveVelocity(std::int16_t leftVoltage, std::int16_t rightVoltage) {
 				left_mg.move_velocity(leftVoltage);
 				right_mg.move_velocity(rightVoltage);
 			}
 
-			/// @brief Gets the driver control mode
+			/// @brief Stops moving the motors
+			void moveStop() {
+				moveVelocity(0, 0);
+			}
+
+			/// @brief Tares the motors
+			void tareMotors() {
+				left_mg.tare_position();
+				right_mg.tare_position();
+			}
+
+			/// @brief Move to relative position
 			/// @param pos Position to move to
-			void moveRelative(double pos) {
+			void moveRelPos(double pos) {
+				tareMotors();
+
 				left_mg.move_relative(pos, maxRelativeVelocity);
 				right_mg.move_relative(pos, maxRelativeVelocity);
+
+				double lowerError = pos - maxRelativeError;
+				double upperError = pos + maxRelativeError;
+
+				while ((
+					!isNumBetween(left_mg.get_position(), lowerError, upperError)
+				) && (
+					!isNumBetween(right_mg.get_position(), lowerError, upperError)
+				)) {
+					pros::delay(moveDelayMs);
+				}
+			}
+
+			/// @brief Turn to a specific angle
+			/// @param angle Angle to turn to
+			void turnTo(double angle) {
+
 			}
 
 			/// @brief Gets the left motor group
@@ -607,7 +653,7 @@ namespace hyper {
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
 				bool liftMechMoving = reqPointers.liftMech->getEngaged();
 
-				bool moveConveyer = mogoMechMoving && on || liftMechMoving && on;
+				bool moveConveyer = (mogoMechMoving && on) || (liftMechMoving && on);
 
 				return moveConveyer;
 			}
@@ -793,6 +839,21 @@ namespace hyper {
 
 		return voltage;
 	}
+
+	/// @brief Assert that a number is between two values
+	/// @param num Number to assert
+	/// @param min Minimum value
+	/// @param max Maximum value
+	template <typename T>
+	bool isNumBetween(T num, T min, T max) {
+		assertArithmetic(num);
+
+		if ((num > min) && (num < max)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 } // namespace hyper
 
 // Global variables
@@ -809,7 +870,7 @@ hyper::AbstractChassis* currentChassis;
 
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
-		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS}, 
+		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
 	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS});
 	
 	currentChassis = &defaultChassis;
