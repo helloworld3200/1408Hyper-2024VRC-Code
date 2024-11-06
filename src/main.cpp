@@ -30,8 +30,10 @@ namespace hyper {
 	template <typename T>
 	bool isNumBetween(T num, T min, T max);
 
-	// Class declarations
+	template <typename T>
+	T normaliseAngle(T angle);
 
+	// Class declarations
 
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
@@ -422,7 +424,8 @@ namespace hyper {
 			std::int32_t maxRelativeVelocity = 1024;
 			std::int8_t maxRelativeError = 5;
 
-			std::int32_t maxTurnVelocity = 127;
+			std::int16_t maxTurnVelocity = 127;
+			float minTurnThreshold = 1;
 
 			uint32_t moveDelayMs = 2;
 
@@ -488,9 +491,15 @@ namespace hyper {
 				right_mg.move_velocity(rightVoltage);
 			}
 
+			/// @brief Moves the motors at a single velocity
+			/// @param voltage Voltage to move the motors at
+			void moveSingleVelocity(std::int16_t voltage) {
+				moveVelocity(voltage, voltage);
+			}
+
 			/// @brief Stops moving the motors
 			void moveStop() {
-				moveVelocity(0, 0);
+				moveSingleVelocity(0);
 			}
 
 			/// @brief Tares the motors
@@ -523,9 +532,27 @@ namespace hyper {
 			/// @param angle Angle to turn to
 			void turnTo(double angle) {
 				double currentHeading = imu.get_heading();
-				double targetHeading = angle - currentHeading;
+				double angleDifference = normaliseAngle(angle - currentHeading);
 
-				bool turnDir;
+				std::int16_t turnDirection = (angleDifference > 0) ? maxTurnVelocity : -maxTurnVelocity;
+				
+				left_mg.move_velocity(turnDirection);
+				right_mg.move_velocity(-turnDirection);
+
+				while (std::abs(angleDifference) > minTurnThreshold) {
+					currentHeading = imu.get_heading();
+					angleDifference = normaliseAngle(angle - currentHeading);
+
+					if (angleDifference > 180) {
+						angleDifference -= 360;
+					} else if (angleDifference < -180) {
+						angleDifference += 360;
+					}
+
+					pros::delay(moveDelayMs);
+				}
+
+				moveStop();
 			}
 
 			/// @brief Gets the left motor group
@@ -859,6 +886,21 @@ namespace hyper {
 			return false;
 		}
 	}
+
+	/// @brief Normalise an angle to the range [-180, 180]
+	/// @param angle Angle to normalise
+	template <typename T>
+	T normaliseAngle(T angle) {
+		assertArithmetic(angle);
+
+		if (angle > 180) {
+			angle -= 360;
+		} else if (angle < -180) {
+			angle += 360;
+		}
+
+		return angle;
+	}
 } // namespace hyper
 
 // Global variables
@@ -971,7 +1013,7 @@ void mainControl() {
 
 
 
-		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
+		pros::delay(MAINLOOP_DELAY_TIME_MS);
 	}
 }
 /**

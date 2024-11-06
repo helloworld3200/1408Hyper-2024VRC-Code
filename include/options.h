@@ -4,7 +4,7 @@
 #define _HYPER_OPTIONS_H_
 
 // Variables (u can change these!!)
-#define DELAY_TIME_MS 20
+#define MAINLOOP_DELAY_TIME_MS 20
 // Turn on for match auton to be run at the start of opcontrol
 #define MATCH_AUTON_TEST false
 
