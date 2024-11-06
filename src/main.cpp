@@ -422,6 +422,8 @@ namespace hyper {
 			std::int32_t maxRelativeVelocity = 1024;
 			std::int8_t maxRelativeError = 5;
 
+			std::int32_t maxTurnVelocity = 127;
+
 			uint32_t moveDelayMs = 2;
 
 			Drivetrain(DrivetrainArgs args) : 
@@ -520,7 +522,10 @@ namespace hyper {
 			/// @brief Turn to a specific angle
 			/// @param angle Angle to turn to
 			void turnTo(double angle) {
+				double currentHeading = imu.get_heading();
+				double targetHeading = angle - currentHeading;
 
+				bool turnDir;
 			}
 
 			/// @brief Gets the left motor group
