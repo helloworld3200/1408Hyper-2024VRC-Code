@@ -286,6 +286,10 @@ namespace hyper {
 			bool isNewPress = true;
 
 			void moveState(State target) {
+				if (!isNewPress) {
+					return;
+				}
+
 				switch (target) {
 					case State::OFF:
 						component->move(false);
@@ -660,7 +664,7 @@ namespace hyper {
 			Chassis* chassis;
 
 			void driveSector1() {
-				  
+				
 			};
 		protected:
 		public:

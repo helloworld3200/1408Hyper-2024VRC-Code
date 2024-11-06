@@ -17,18 +17,22 @@
 #define LIFT_MECH_PORT 'A'
 
 // Motor ports for the conveyer
-#define CONVEYER_PORTS {11, -1}
+#define CONVEYER_PORTS {11, -6}
 
 // Motor ports for the intake motor group
 #define INTAKE_PORTS {-2, 3}
+
+// Ports for telemetry
+// IMU
+#define IMU_PORT 15
 
 // Turn on/off auton and opcontrol
 #define DO_MATCH_AUTON true
 #define DO_OP_CONTROL true
 
 // Ports for the drivetrain motors
-#define LEFT_DRIVE_PORTS {12, 13, 14}
-#define RIGHT_DRIVE_PORTS {20, 19, 18}
+#define LEFT_DRIVE_PORTS {13, 18, 14}
+#define RIGHT_DRIVE_PORTS {12, 19, 20}
 
 // Chassis class to use (default is initDefaultChassis)
 #define INIT_CHASSIS initDefaultChassis
