@@ -58,6 +58,7 @@ namespace hyper {
 
 			virtual void opControl() = 0;
 			virtual void auton() = 0;
+			virtual void skills() = 0;
 	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
@@ -357,6 +358,8 @@ namespace hyper {
 
 				if (fwdPressed && backPressed) {
 					// Don't do anything if both are pressed
+					// TODO: test whether the return works
+					// because we need it for backwards motor movement
 					//return;
 				}
 
@@ -733,31 +736,6 @@ namespace hyper {
 			}
 	}; // class Intake
 
-	// Fix circular dependency
-	class Chassis;
-
-	/// @brief Main auton class
-	class MatchAuton {
-		private:
-			Chassis* chassis;
-
-			void driveSector1() {
-				
-			};
-		protected:
-		public:
-			int speed = 100;
-
-			/// @brief Creates auton object
-			/// @param chassis Pointer to chassis object
-			MatchAuton(Chassis* chassis) : 
-				chassis(chassis) {};
-
-			void go() {
-				driveSector1();
-			};
-	}; // class Auton
-
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
@@ -778,8 +756,6 @@ namespace hyper {
 
 			Drivetrain dvt;
 
-			MatchAuton autonController;
-
 			MogoMech mogoMech;
 			LiftMech liftMech;
 
@@ -793,8 +769,7 @@ namespace hyper {
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
 				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts}),
-				autonController(this) {};
+				intake({this, args.intakePorts}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -813,7 +788,16 @@ namespace hyper {
 
 			/// @brief Auton function for the chassis
 			void auton() override {
-				autonController.go();
+				// Because auton is only 15 secs no need to divide into sectors
+				
+			}
+
+			void skillsSector1() {
+
+			}
+
+			void skills() override {
+				skillsSector1();
 			}
 	}; // class Chassis
 
@@ -997,6 +981,10 @@ void mainControl() {
 
 	if (MATCH_AUTON_TEST) {
 		autonomous();
+	}
+
+	if (DO_SKILLS_AUTON) {
+		currentChassis->skills();
 	}
 
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
