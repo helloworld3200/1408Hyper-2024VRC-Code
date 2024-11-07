@@ -17,8 +17,6 @@ namespace hyper {
 			};
 		protected:
 		public:
-			int speed = 100;
-
 			/// @brief Creates auton object
 			/// @param chassis Pointer to chassis object
 			MatchAuton(Chassis* chassis) : 
