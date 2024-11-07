@@ -28,7 +28,6 @@
 
 // Turn on/off auton and opcontrol
 #define DO_MATCH_AUTON true
-#define DO_SKILLS_AUTON false
 #define DO_OP_CONTROL true
 
 // Ports for the drivetrain motors
