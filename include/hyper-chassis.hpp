@@ -6,8 +6,6 @@
 
 /// @brief Our namespace for all custom classes and functions
 namespace hyper {
-	//class MatchAuton;
-
     /// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
