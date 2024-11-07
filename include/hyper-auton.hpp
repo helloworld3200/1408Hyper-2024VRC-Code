@@ -5,6 +5,8 @@
 
 /// @brief Our namespace for all custom classes and functions
 namespace hyper {
+	class Chassis;
+
     /// @brief Main auton class
 	class MatchAuton {
 		private:
