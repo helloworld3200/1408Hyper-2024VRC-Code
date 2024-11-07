@@ -534,6 +534,8 @@ namespace hyper {
 			/// @brief Turn to a specific angle
 			/// @param angle Angle to turn to
 			void turnTo(double angle) {
+				imu.tare();
+
 				double currentHeading = imu.get_heading();
 				double angleDifference = normaliseAngle(angle - currentHeading);
 
@@ -806,7 +808,23 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			void auton() override {
 				// Because auton is only 15 secs no need to divide into sectors
+				intake.move(true);
+				dvt.turnTo(45);
+				dvt.moveRelPos(1000);
+
+				dvt.turnTo(-20);
+				dvt.turnTo(20);
+
+				dvt.moveRelPos(5000);
+				dvt.turnTo(-60);
+				dvt.moveRelPos(2000);
 				
+				dvt.turnTo(-110);
+				intake.move(false);
+
+				conveyer.move(true);
+				pros::delay(2000);
+				conveyer.move(false);
 			}
 
 			void skillsSector1() {
