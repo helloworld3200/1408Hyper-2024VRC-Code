@@ -424,7 +424,7 @@ namespace hyper {
 
 			DriveControlSpeed driveControlSpeed = {};
 
-			std::int32_t maxRelativeVelocity = 1024;
+			std::int32_t defaultMoveVelocity = 1024;
 			std::int8_t maxRelativeError = 5;
 
 			std::int16_t maxTurnVelocity = 127;
@@ -516,8 +516,8 @@ namespace hyper {
 			void moveRelPos(double pos) {
 				tareMotors();
 
-				left_mg.move_relative(pos, maxRelativeVelocity);
-				right_mg.move_relative(pos, maxRelativeVelocity);
+				left_mg.move_relative(pos, defaultMoveVelocity);
+				right_mg.move_relative(pos, defaultMoveVelocity);
 
 				double lowerError = pos - maxRelativeError;
 				double upperError = pos + maxRelativeError;
@@ -555,6 +555,23 @@ namespace hyper {
 					pros::delay(moveDelayMs);
 				}
 
+				moveStop();
+			}
+
+			/// @brief Move forward for a certain number of milliseconds
+			/// @param delayMs Number of milliseconds to move forward
+			/// @param left Whether to move the left motor
+			/// @param right Whether to move the right motor
+			void moveDelay(std::uint32_t delayMs, bool left = true, bool right = true) {
+				if (left) {
+					left_mg.move_velocity(defaultMoveVelocity);
+				}
+
+				if (right) {
+					right_mg.move_velocity(defaultMoveVelocity);
+				}
+
+				pros::delay(delayMs);
 				moveStop();
 			}
 
