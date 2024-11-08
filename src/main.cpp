@@ -755,6 +755,32 @@ namespace hyper {
 			}
 	}; // class Intake
 
+	/// @brief Class for controlling the stopper based on the color sensor
+	class ColorStopper : public AbstractComponent {
+		private:
+			Conveyer* conveyer;
+		protected:
+		public:
+			/// @brief Args for color stopper object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			struct ColorStopperArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				std::int8_t colorSensorPort;
+				Conveyer* conveyer;
+			};
+
+			/// @brief Creates color stopper object
+			/// @param args Args for color stopper object (check args struct for more info)
+			ColorStopper(ColorStopperArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				conveyer(args.conveyer) {};
+
+			/// @brief Runs every loop to check if the button has been pressed
+			void opControl() override {
+				
+			}
+	};
+
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
@@ -771,6 +797,7 @@ namespace hyper {
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
 				vector<std::int8_t> intakePorts;
+				std::int8_t colorSensorPort;
 			};
 
 			Drivetrain dvt;
@@ -781,6 +808,8 @@ namespace hyper {
 			Conveyer conveyer;
 			Intake intake;
 
+			ColorStopper colstop;
+
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) :  
@@ -788,7 +817,8 @@ namespace hyper {
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
 				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts}) {};
+				intake({this, args.intakePorts}),
+				colstop({this, args.colorSensorPort, &conveyer}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -803,6 +833,9 @@ namespace hyper {
 				// Motor groups
 				conveyer.opControl();
 				intake.opControl();
+
+				// Misc (eg color sensor)
+				colstop.opControl();
 			}
 
 			/// @brief Auton function for the chassis
@@ -937,7 +970,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS});
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, COLOR_SENSOR_PORT});
 	
 	currentChassis = &defaultChassis;
 }

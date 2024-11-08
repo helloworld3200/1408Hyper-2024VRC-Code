@@ -22,6 +22,9 @@
 // Motor ports for the intake motor group
 #define INTAKE_PORTS {-2, 3}
 
+// Port for the color sensor
+#define COLOR_SENSOR_PORT 5
+
 // Ports for telemetry
 // IMU
 #define IMU_PORT 15
