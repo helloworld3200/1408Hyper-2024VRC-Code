@@ -810,14 +810,14 @@ namespace hyper {
 				// Because auton is only 15 secs no need to divide into sectors
 				intake.move(true);
 				dvt.turnTo(45);
-				dvt.moveRelPos(1000);
+				dvt.moveRelPos(50);
 
 				dvt.turnTo(-20);
 				dvt.turnTo(20);
 
-				dvt.moveRelPos(5000);
+				dvt.moveRelPos(500);
 				dvt.turnTo(-60);
-				dvt.moveRelPos(2000);
+				dvt.moveRelPos(80);
 				
 				dvt.turnTo(-110);
 				intake.move(false);
