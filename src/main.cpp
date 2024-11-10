@@ -708,7 +708,9 @@ namespace hyper {
 				toggle({this, {
 					pros::E_CONTROLLER_DIGITAL_L2,
 					pros::E_CONTROLLER_DIGITAL_L1
-				}}) {};
+				}}) {
+					speeds = {250, -250};
+				};
 
 			bool canMove(bool on) override {
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
@@ -860,7 +862,7 @@ namespace hyper {
 			Conveyer conveyer;
 			Intake intake;
 
-			ColorStopper colstop;
+			//ColorStopper colstop;
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
@@ -869,8 +871,9 @@ namespace hyper {
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
 				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts}),
-				colstop({this, args.colorSensorPort, &conveyer, &liftMech}) {};
+				intake({this, args.intakePorts})
+				//colstop({this, args.colorSensorPort, &conveyer, &liftMech})
+				 {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -887,7 +890,7 @@ namespace hyper {
 				intake.opControl();
 
 				// Misc (eg color sensor)
-				colstop.opControl();
+				//colstop.opControl();
 			}
 
 			/// @brief Auton function for the chassis
@@ -1150,3 +1153,6 @@ void opcontrol() {
 // i would add more comments
 // what is your favourite programming language
 // i like c++ the most
+
+// anti quick make nothing comment thingy
+// a
