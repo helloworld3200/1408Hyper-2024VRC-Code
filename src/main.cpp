@@ -528,12 +528,11 @@ namespace hyper {
 				right_mg.move_relative(pos, defaultMoveVelocity);
 
 				double lowerError = pos - maxRelativeError;
-				double upperError = pos + maxRelativeError;
 
 				while ((
-					!isNumBetween(left_mg.get_position(), lowerError, upperError)
+					!(left_mg.get_position() > lowerError)
 				) && (
-					!isNumBetween(right_mg.get_position(), lowerError, upperError)
+					!(right_mg.get_position() > lowerError)
 				)) {
 					pros::delay(moveDelayMs);
 				}
