@@ -277,13 +277,13 @@ namespace hyper {
 
 	/// @brief Class for a toggle on the controller
 	class BiToggle { // Don't need to derive from AbstractComponent because no need for Chassis pointer
-		private:
+		public:
 			enum class State {
 				OFF,
 				FWD,
 				BACK
 			};
-
+		private:
 			AbstractMG* component;
 
 			pros::Controller* master;
@@ -372,6 +372,14 @@ namespace hyper {
 				} else {
 					isNewPress = true;
 				}
+			}
+
+			void setState(State target) {
+				state = target;
+			}
+
+			State getState() {
+				return state;
 			}
 	}; // class BiToggle
 
@@ -681,10 +689,9 @@ namespace hyper {
 
 		private:
 			ReqPointers reqPointers;
-
-			BiToggle toggle;
 		protected:
 		public:
+			BiToggle toggle;
 
 			/// @brief Args for conveyer object
 			/// @param abstractMGArgs Args for AbstractMG object
@@ -759,6 +766,11 @@ namespace hyper {
 	class ColorStopper : public AbstractComponent {
 		private:
 			Conveyer* conveyer;
+			LiftMech* liftMech;
+
+			pros::Optical colorSensor;
+
+			bool doStop = false;
 		protected:
 		public:
 			/// @brief Args for color stopper object
@@ -767,17 +779,57 @@ namespace hyper {
 				AbstractComponentArgs abstractComponentArgs;
 				std::int8_t colorSensorPort;
 				Conveyer* conveyer;
+				LiftMech* liftMech;
 			};
+
+			struct ColorThresholds {
+				float lower;
+				float upper;
+			};
+
+			vector<ColorThresholds> blue = {{0, 30}, {330, 360}};
+			vector<ColorThresholds> red = {{180, 240}};
+
+			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_Y;
 
 			/// @brief Creates color stopper object
 			/// @param args Args for color stopper object (check args struct for more info)
 			ColorStopper(ColorStopperArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
-				conveyer(args.conveyer) {};
+				colorSensor(args.colorSensorPort),
+				conveyer(args.conveyer),
+				liftMech(args.liftMech) {};
+
+			bool isColor(vector<ColorThresholds>& thresholds) {
+				for (ColorThresholds threshold : thresholds) {
+					float reading = colorSensor.get_hue();
+					if (isNumBetween(reading, threshold.lower, threshold.upper)) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			void checkStopColor(vector<ColorThresholds>& thresholds) {
+				if (isColor(thresholds)) {
+					conveyer->move(false);
+					liftMech->actuate(true);
+					conveyer->toggle.setState(BiToggle::State::OFF);
+					doStop = false;
+				}
+			}
 
 			/// @brief Runs every loop to check if the button has been pressed
 			void opControl() override {
-				
+				if (master->get_digital(btn)) {
+					doStop = true;
+				}
+
+				if (doStop) {
+					checkStopColor(blue);
+					checkStopColor(red);
+				}
 			}
 	};
 
@@ -818,7 +870,7 @@ namespace hyper {
 				liftMech({this, args.liftMechPort}), 
 				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
 				intake({this, args.intakePorts}),
-				colstop({this, args.colorSensorPort, &conveyer}) {};
+				colstop({this, args.colorSensorPort, &conveyer, &liftMech}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
