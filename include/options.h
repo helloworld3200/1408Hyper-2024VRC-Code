@@ -35,7 +35,7 @@
 #define DO_OP_CONTROL true
 
 // Ports for the drivetrain motors
-#define LEFT_DRIVE_PORTS {13, 18, 14}
+#define LEFT_DRIVE_PORTS {-13, -18, -14}
 #define RIGHT_DRIVE_PORTS {12, 19, 20}
 
 // Chassis class to use (default is initDefaultChassis)

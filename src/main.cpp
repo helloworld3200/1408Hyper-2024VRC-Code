@@ -435,8 +435,8 @@ namespace hyper {
 			std::int32_t defaultMoveVelocity = 1024;
 			std::int8_t maxRelativeError = 5;
 
-			std::int16_t maxTurnVelocity = 127;
-			float minTurnThreshold = 1;
+			std::int16_t maxTurnVelocity = 60;
+			float minTurnThreshold = 5;
 
 			uint32_t moveDelayMs = 2;
 
@@ -455,8 +455,10 @@ namespace hyper {
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
 			void arcadeControl() {
-				float dir = -1 * master->get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
-				float turn = master->get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
+				float dir = master->get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+				float turn = master->get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
+
+				turn *= -1;
 
 				dir *= driveControlSpeed.forwardBackSpeed;
 				turn *= driveControlSpeed.turnSpeed;
@@ -536,6 +538,8 @@ namespace hyper {
 				)) {
 					pros::delay(moveDelayMs);
 				}
+
+				moveStop();
 			}
 
 			/// @brief Turn to a specific angle
@@ -547,22 +551,36 @@ namespace hyper {
 				double angleDifference = normaliseAngle(angle - currentHeading);
 
 				std::int16_t turnDirection = (angleDifference > 0) ? maxTurnVelocity : -maxTurnVelocity;
+				//std::int16_t turnDirection = maxTurnVelocity;
 				
 				left_mg.move_velocity(turnDirection);
 				right_mg.move_velocity(-turnDirection);
 
-				while (std::abs(angleDifference) > minTurnThreshold) {
+				while (true) {
 					currentHeading = imu.get_heading();
 					angleDifference = normaliseAngle(angle - currentHeading);
-
-					if (angleDifference > 180) {
-						angleDifference -= 360;
-					} else if (angleDifference < -180) {
-						angleDifference += 360;
+					
+					if (std::fabs(angleDifference) <= minTurnThreshold) {
+						break;
 					}
-
+					
+					pros::lcd::set_text(2, "Current heading: " + std::to_string(currentHeading));
 					pros::delay(moveDelayMs);
 				}
+
+				moveStop();
+			}
+
+			/// @brief Turn to a specific angle with a delay
+			/// @param angle Angle to turn to
+			/// @param delayMs Delay in milliseconds
+			void turnDelay(bool direction, std::uint32_t delayMs) {
+				std::int16_t turnDirection = (direction) ? maxTurnVelocity : -maxTurnVelocity;
+
+				left_mg.move_velocity(turnDirection);
+				right_mg.move_velocity(-turnDirection);
+
+				pros::delay(delayMs / 1000);
 
 				moveStop();
 			}
@@ -896,8 +914,9 @@ namespace hyper {
 			void auton() override {
 				// Because auton is only 15 secs no need to divide into sectors
 				intake.move(true);
-				dvt.turnTo(45);
+				dvt.turnDelay(true, 5);
 				dvt.moveRelPos(50);
+				return;
 
 				dvt.turnTo(-20);
 				dvt.turnTo(20);
