@@ -580,7 +580,7 @@ namespace hyper {
 				left_mg.move_velocity(turnDirection);
 				right_mg.move_velocity(-turnDirection);
 
-				pros::delay(delayMs / 1000);
+				pros::delay(delayMs * 1000);
 
 				moveStop();
 			}
@@ -914,18 +914,17 @@ namespace hyper {
 			void auton() override {
 				// Because auton is only 15 secs no need to divide into sectors
 				intake.move(true);
-				dvt.turnDelay(true, 5);
+				dvt.turnDelay(true, 0.2);
 				dvt.moveRelPos(50);
-				return;
 
-				dvt.turnTo(-20);
-				dvt.turnTo(20);
+				dvt.turnDelay(true, 0.4);
+				dvt.turnDelay(false, 0.4);
 
 				dvt.moveRelPos(500);
-				dvt.turnTo(-60);
+				dvt.turnDelay(true, 0.6);
 				dvt.moveRelPos(80);
 				
-				dvt.turnTo(-110);
+				dvt.turnDelay(true, 0.8);
 				intake.move(false);
 
 				conveyer.move(true);
@@ -937,8 +936,13 @@ namespace hyper {
 
 			}
 
+			void skillsSector2() {
+
+			}
+
 			void skills() override {
 				skillsSector1();
+				skillsSector2();
 			}
 	}; // class Chassis
 
