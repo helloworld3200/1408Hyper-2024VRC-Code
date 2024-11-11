@@ -913,20 +913,25 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			void auton() override {
 				// Because auton is only 15 secs no need to divide into sectors
+				// Move and collect first rings/discombobulate first
 				intake.move(true);
 				dvt.turnDelay(true, 0.2);
 				dvt.moveRelPos(50);
 
+				// Get the far ring and turn back onto main path
 				dvt.turnDelay(true, 0.4);
 				dvt.turnDelay(false, 0.4);
 
+				// Get other stack knocked over
 				dvt.moveRelPos(500);
 				dvt.turnDelay(true, 0.6);
 				dvt.moveRelPos(80);
 				
+				// Turn into high wall stake
 				dvt.turnDelay(true, 0.8);
 				intake.move(false);
 
+				// Deposit on high wall stake
 				conveyer.move(true);
 				pros::delay(2000);
 				conveyer.move(false);
