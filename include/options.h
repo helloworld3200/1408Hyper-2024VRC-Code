@@ -28,6 +28,8 @@
 // Ports for telemetry
 // IMU
 #define IMU_PORT 15
+// Ultrasound (1st is ping port, 2nd is echo port)
+#define BACK_ULTRA_PORTS {'A', 'B'}
 
 // Turn on/off auton and opcontrol
 #define DO_MATCH_AUTON true

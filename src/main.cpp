@@ -22,9 +22,6 @@ namespace hyper {
 	template <typename T>
 	string vectorToString(vector<T>& vec, string delimiter = ", ");
 
-	template <typename T>
-	T clamp(T val, T min, T max);
-
 	std::int32_t prepareMoveVoltage(float raw);
 
 	template <typename T>
@@ -432,6 +429,8 @@ namespace hyper {
 
 			DriveControlSpeed driveControlSpeed = {};
 
+			bool allowBackMove = true;
+
 			std::int32_t defaultMoveVelocity = 1024;
 			std::int8_t maxRelativeError = 5;
 
@@ -465,6 +464,11 @@ namespace hyper {
 				dir *= driveControlSpeed.forwardBackSpeed;
 				turn *= driveControlSpeed.turnSpeed;
 				
+				// Clamp the range to above one only to remove back movement
+				if (!allowBackMove) {
+					dir = std::clamp(dir, 0.0f, 1.0f);
+				}
+
 				std::int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
 				std::int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
 
@@ -584,7 +588,7 @@ namespace hyper {
 				left_mg.move_velocity(turnDirection);
 				right_mg.move_velocity(-turnDirection);
 
-				pros::delay(delayMs * 1000);
+				pros::delay(delayMs);
 
 				moveStop();
 			}
@@ -856,6 +860,44 @@ namespace hyper {
 			}
 	};
 
+	/// @brief Class for stopping based on the ultrasonic sensor
+	class UltraStopper : public AbstractComponent {
+		private:
+		protected:
+		public:
+			/// @brief Args for ultra stopper object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param backUltraPorts Vector of ports for back ultra sensor
+			struct UltraStopperArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				vector<char> backUltraPorts;
+				Drivetrain* dvt;
+			};
+
+			Drivetrain* dvt;
+
+			pros::adi::Ultrasonic ultra;
+
+			float threshold = 10;
+
+			/// @brief Creates ultra stopper object
+			/// @param args Args for ultra stopper object (check args struct for more info)
+			UltraStopper(UltraStopperArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				ultra(args.backUltraPorts[0], args.backUltraPorts[1]),
+				dvt(args.dvt) {};
+
+			void opControl() override {
+				float distance = ultra.get_value();
+
+				if (distance <= threshold) {
+					dvt->allowBackMove = false;
+				} else {
+					dvt->allowBackMove = true;
+				}
+			}
+	};
+
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
@@ -873,6 +915,7 @@ namespace hyper {
 				vector<std::int8_t> conveyerPorts;
 				vector<std::int8_t> intakePorts;
 				std::int8_t colorSensorPort;
+				vector<char> backUltraPorts;
 			};
 
 			Drivetrain dvt;
@@ -883,7 +926,8 @@ namespace hyper {
 			Conveyer conveyer;
 			Intake intake;
 
-			//ColorStopper colstop;
+			/*ColorStopper colstop;
+			UltraStopper ultraStopper;*/
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
@@ -892,9 +936,9 @@ namespace hyper {
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
 				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts})
-				//colstop({this, args.colorSensorPort, &conveyer, &liftMech})
-				 {};
+				intake({this, args.intakePorts})/*,
+				colstop({this, args.colorSensorPort, &conveyer, &liftMech})
+				ultraStopper({this, args.backUltraPorts, &dvt})*/ {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -911,7 +955,8 @@ namespace hyper {
 				intake.opControl();
 
 				// Misc (eg color sensor)
-				//colstop.opControl();
+				/*colstop.opControl();
+				ultraStopper.opControl();*/
 			}
 
 			/// @brief Auton function for the chassis
@@ -923,14 +968,16 @@ namespace hyper {
 				// Because auton is only 15 secs no need to divide into sectors
 				// Move and collect first rings/discombobulate first
 				intake.move(true);
-				dvt.turnDelay(true, 0.6);
+				dvt.turnDelay(true, 600);
+				return;
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				dvt.moveRelPos(50);
 
 				// Get the far ring and turn back onto main path
-				dvt.turnDelay(true, 1);
+				dvt.turnDelay(true, 0.45);
+				return;
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.turnDelay(false, 1.5);
+				//dvt.turnDelay(false, 1.5);
 
 				// Get other stack knocked over
 				dvt.moveRelPos(100);
@@ -997,23 +1044,12 @@ namespace hyper {
 		static_assert(std::is_arithmetic<T>::value, "Value must be arithmetic");
 	}
 
-	/// @brief Clamp a value between a min and max
-	/// @param val Value to clamp
-	/// @param min Minimum value
-	/// @param max Maximum value
-	template <typename T>
-	T clamp(const T val, const T min, const T max) {
-		assertArithmetic(val);
-
-		return std::max(min, std::min(val, max));
-	}
-
 	std::int32_t prepareMoveVoltage(float raw) {
 		// Round the number to the nearest integer
 		raw = std::round(raw);
 
 		std::int32_t voltage = static_cast<std::int32_t>(raw);
-		voltage = clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
+		voltage = std::clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
 
 		return voltage;
 	}
@@ -1064,7 +1100,8 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, COLOR_SENSOR_PORT});
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, 
+	COLOR_SENSOR_PORT, BACK_ULTRA_PORTS});
 	
 	currentChassis = &defaultChassis;
 }
