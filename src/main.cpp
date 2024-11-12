@@ -687,7 +687,9 @@ namespace hyper {
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			MogoMech(MogoMechArgs args) : 
-				AbstractMech(args.abstractMechArgs) {};
+				AbstractMech(args.abstractMechArgs) {
+					actuate(true);
+				};
 
 			/// @brief Runs every loop to check if the button has been pressed
 			void opControl () override {
@@ -969,24 +971,22 @@ namespace hyper {
 				// Move and collect first rings/discombobulate first
 				intake.move(true);
 				dvt.turnDelay(true, 600);
-				return;
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				dvt.moveRelPos(50);
 
 				// Get the far ring and turn back onto main path
-				dvt.turnDelay(true, 0.45);
-				return;
+				dvt.turnDelay(true, 180);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				//dvt.turnDelay(false, 1.5);
 
 				// Get other stack knocked over
 				dvt.moveRelPos(100);
-				dvt.turnDelay(true, 1);
+				dvt.turnDelay(false, 450);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				dvt.moveRelPos(80);
 				
 				// Turn into high wall stake
-				dvt.turnDelay(true, 0.8);
+				dvt.turnDelay(true, 900);
 				intake.move(false);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
