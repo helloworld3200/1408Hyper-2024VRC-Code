@@ -438,6 +438,8 @@ namespace hyper {
 			std::int16_t maxTurnVelocity = 60;
 			float minTurnThreshold = 5;
 
+			float relativeMovementCoefficient = 14.2857;
+
 			uint32_t moveDelayMs = 2;
 
 			Drivetrain(DrivetrainArgs args) : 
@@ -522,9 +524,11 @@ namespace hyper {
 			}
 
 			/// @brief Move to relative position
-			/// @param pos Position to move to
+			/// @param pos Position to move to in CM
 			void moveRelPos(double pos) {
 				tareMotors();
+
+				pos *= relativeMovementCoefficient;
 
 				left_mg.move_relative(pos, defaultMoveVelocity);
 				right_mg.move_relative(pos, defaultMoveVelocity);
@@ -913,36 +917,36 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
-				dvt.moveRelPos(1000);
+				//dvt.moveRelPos(1000);
 				//dvt.turnDelay(true, 5);
 
 				// Because auton is only 15 secs no need to divide into sectors
 				// Move and collect first rings/discombobulate first
-				/*intake.move(true);
+				intake.move(true);
 				dvt.turnDelay(true, 0.6);
-				pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(1000);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(50);
 
 				// Get the far ring and turn back onto main path
 				dvt.turnDelay(true, 1);
-				pros::delay(MAINLOOP_DELAY_TIME_MS);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				dvt.turnDelay(false, 1.5);
 
 				// Get other stack knocked over
-				dvt.moveRelPos(500);
+				dvt.moveRelPos(100);
 				dvt.turnDelay(true, 1);
-				pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(6000);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(80);
 				
 				// Turn into high wall stake
 				dvt.turnDelay(true, 0.8);
 				intake.move(false);
-				pros::delay(MAINLOOP_DELAY_TIME_MS);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
 				// Deposit on high wall stake
 				conveyer.move(true);
 				pros::delay(2000);
-				conveyer.move(false);*/
+				conveyer.move(false);
 			}
 
 			void skillsSector1() {
