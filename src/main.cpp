@@ -911,30 +911,38 @@ namespace hyper {
 			}
 
 			/// @brief Auton function for the chassis
+			// 1000 = 70cm
 			void auton() override {
+				dvt.moveRelPos(1000);
+				//dvt.turnDelay(true, 5);
+
 				// Because auton is only 15 secs no need to divide into sectors
 				// Move and collect first rings/discombobulate first
-				intake.move(true);
-				dvt.turnDelay(true, 0.2);
-				dvt.moveRelPos(50);
+				/*intake.move(true);
+				dvt.turnDelay(true, 0.6);
+				pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(1000);
 
 				// Get the far ring and turn back onto main path
-				dvt.turnDelay(true, 0.4);
-				dvt.turnDelay(false, 0.4);
+				dvt.turnDelay(true, 1);
+				pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.turnDelay(false, 1.5);
 
 				// Get other stack knocked over
 				dvt.moveRelPos(500);
-				dvt.turnDelay(true, 0.6);
-				dvt.moveRelPos(80);
+				dvt.turnDelay(true, 1);
+				pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(6000);
 				
 				// Turn into high wall stake
 				dvt.turnDelay(true, 0.8);
 				intake.move(false);
+				pros::delay(MAINLOOP_DELAY_TIME_MS);
 
 				// Deposit on high wall stake
 				conveyer.move(true);
 				pros::delay(2000);
-				conveyer.move(false);
+				conveyer.move(false);*/
 			}
 
 			void skillsSector1() {
