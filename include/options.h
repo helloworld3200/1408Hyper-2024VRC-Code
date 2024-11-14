@@ -17,7 +17,7 @@
 #define LIFT_MECH_PORT 'A'
 
 // Motor ports for the conveyer
-#define CONVEYER_PORTS {11, -6}
+#define CONVEYER_PORTS {-11, 6}
 
 // Motor ports for the intake motor group
 #define INTAKE_PORTS {-2, 3}

@@ -597,13 +597,11 @@ namespace hyper {
 			/// @param delayMs Number of milliseconds to move forward
 			/// @param left Whether to move the left motor
 			/// @param right Whether to move the right motor
-			void moveDelay(std::uint32_t delayMs, bool left = true, bool right = true) {
-				if (left) {
-					left_mg.move_velocity(defaultMoveVelocity);
-				}
-
-				if (right) {
-					right_mg.move_velocity(defaultMoveVelocity);
+			void moveDelay(std::uint32_t delayMs, bool forward = true) {
+				if (forward) {
+					moveSingleVelocity(defaultMoveVelocity);
+				} else {
+					moveSingleVelocity(-defaultMoveVelocity);
 				}
 
 				pros::delay(delayMs);
@@ -975,25 +973,31 @@ namespace hyper {
 				dvt.moveRelPos(50);
 
 				// Get the far ring and turn back onto main path
-				dvt.turnDelay(true, 180);
+				dvt.turnDelay(true, 330);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				//dvt.turnDelay(false, 1.5);
 
 				// Get other stack knocked over
 				dvt.moveRelPos(100);
-				dvt.turnDelay(false, 450);
+				// optional: increase speed to intake if we have no harvester
+				//dvt.moveRelPos(130);
+				//dvt.moveDelay(600, false);
+				dvt.turnDelay(false, 550);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(80);
+				dvt.moveRelPos(160);
 				
 				// Turn into high wall stake
-				dvt.turnDelay(true, 900);
+				dvt.turnDelay(false, 870);
+				dvt.moveDelay(800, false);
 				intake.move(false);
+				liftMech.actuate(true);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
 				// Deposit on high wall stake
-				conveyer.move(true);
+				conveyer.move(true, false);
 				pros::delay(2000);
 				conveyer.move(false);
+				liftMech.actuate(false);
 			}
 
 			void skillsSector1() {
