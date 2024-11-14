@@ -1002,7 +1002,7 @@ namespace hyper {
 
 			void skillsSector1() {
 				mogoMech.actuate(false);
-				dvt.moveRelPos(5);
+				dvt.moveDelay(300, false);
 				mogoMech.actuate(true);
 				dvt.turnDelay(false, 600);
 				intake.move(true);
