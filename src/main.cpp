@@ -1001,7 +1001,19 @@ namespace hyper {
 			}
 
 			void skillsSector1() {
+				mogoMech.actuate(false);
+				dvt.moveRelPos(5);
+				mogoMech.actuate(true);
+				dvt.turnDelay(false, 600);
+				intake.move(true);
+				conveyer.move(true);
 
+				dvt.moveRelPos(90);
+				dvt.turnDelay(false, 400);
+				dvt.moveDelay(300, false);
+
+				mogoMech.actuate(false);
+				
 			}
 
 			void skillsSector2() {
