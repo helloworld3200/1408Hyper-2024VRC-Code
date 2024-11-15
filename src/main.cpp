@@ -962,34 +962,32 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
-				//dvt.moveRelPos(1000);
-				//dvt.turnDelay(true, 5);
-
 				// Because auton is only 15 secs no need to divide into sectors
 				// Move and collect first rings/discombobulate first
-				intake.move(true);
+				//intake.move(true);
 				dvt.turnDelay(true, 600);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				dvt.moveRelPos(50);
 
 				// Get the far ring and turn back onto main path
+				// (no longer necessarily needed because we start with 1 ring already in the robot)
 				dvt.turnDelay(true, 330);
+				dvt.moveRelPos(100);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				//dvt.turnDelay(false, 1.5);
 
 				// Get other stack knocked over
-				dvt.moveRelPos(100);
 				// optional: increase speed to intake if we have no harvester
 				//dvt.moveRelPos(130);
 				//dvt.moveDelay(600, false);
-				dvt.turnDelay(false, 550);
+				dvt.turnDelay(false, 450);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				dvt.moveRelPos(160);
 				
-				// Turn into high wall stake
+				// Turn into high wall stake & deposit
 				dvt.turnDelay(false, 870);
 				dvt.moveDelay(800, false);
-				intake.move(false);
+				//intake.move(false);
 				liftMech.actuate(true);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
