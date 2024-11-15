@@ -357,7 +357,7 @@ namespace hyper {
 					// Don't do anything if both are pressed
 					// TODO: test whether the return works
 					// because we need it for backwards motor movement
-					//return;
+					return;
 				}
 
 				if (fwdPressed) {
