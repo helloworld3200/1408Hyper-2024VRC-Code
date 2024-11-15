@@ -22,13 +22,15 @@ namespace hyper {
 	template <typename T>
 	string vectorToString(vector<T>& vec, string delimiter = ", ");
 
-	template <typename T>
-	T clamp(T val, T min, T max);
-
 	std::int32_t prepareMoveVoltage(float raw);
 
-	// Class declarations
+	template <typename T>
+	bool isNumBetween(T num, T min, T max);
 
+	template <typename T>
+	T normaliseAngle(T angle);
+
+	// Class declarations
 
 	/// @brief Abstract chassis class for if you want a custom chassis class
 	class AbstractChassis {
@@ -53,6 +55,7 @@ namespace hyper {
 
 			virtual void opControl() = 0;
 			virtual void auton() = 0;
+			virtual void skills() = 0;
 	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
@@ -271,13 +274,13 @@ namespace hyper {
 
 	/// @brief Class for a toggle on the controller
 	class BiToggle { // Don't need to derive from AbstractComponent because no need for Chassis pointer
-		private:
+		public:
 			enum class State {
 				OFF,
 				FWD,
 				BACK
 			};
-
+		private:
 			AbstractMG* component;
 
 			pros::Controller* master;
@@ -286,6 +289,10 @@ namespace hyper {
 			bool isNewPress = true;
 
 			void moveState(State target) {
+				if (!isNewPress) {
+					return;
+				}
+
 				switch (target) {
 					case State::OFF:
 						component->move(false);
@@ -348,7 +355,9 @@ namespace hyper {
 
 				if (fwdPressed && backPressed) {
 					// Don't do anything if both are pressed
-					return;
+					// TODO: test whether the return works
+					// because we need it for backwards motor movement
+					//return;
 				}
 
 				if (fwdPressed) {
@@ -360,6 +369,14 @@ namespace hyper {
 				} else {
 					isNewPress = true;
 				}
+			}
+
+			void setState(State target) {
+				state = target;
+			}
+
+			State getState() {
+				return state;
 			}
 	}; // class BiToggle
 
@@ -374,6 +391,8 @@ namespace hyper {
 		private:
 			pros::MotorGroup left_mg;
 			pros::MotorGroup right_mg;
+
+			pros::IMU imu;
 
 			DriveControlMode driveControlMode;
 
@@ -398,6 +417,7 @@ namespace hyper {
 			struct DrivetrainPorts {
 				vector<std::int8_t> left;
 				vector<std::int8_t> right;
+				std::int8_t imuPort;
 			};
 
 			/// @brief Args for drivetrain object
@@ -409,13 +429,25 @@ namespace hyper {
 
 			DriveControlSpeed driveControlSpeed = {};
 
-			std::int32_t maxRelativeVelocity = 1024;
+			bool allowBackMove = true;
+
+			std::int32_t defaultMoveVelocity = 1024;
+			std::int8_t maxRelativeError = 5;
+
+			std::int16_t maxTurnVelocity = 60;
+			float minTurnThreshold = 5;
+
+			float relativeMovementCoefficient = 14.2857;
+
+			uint32_t moveDelayMs = 2;
 
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
-				right_mg(args.ports.right) {
+				right_mg(args.ports.right),
+				imu(args.ports.imuPort) {
 					setDriveControlMode();
+					calibrateIMU();
 				};
 
 			void opControl() override {
@@ -424,12 +456,19 @@ namespace hyper {
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
 			void arcadeControl() {
-				float dir = -1 * master->get_analog(ANALOG_RIGHT_X);    // Gets amount forward/backward from left joystick
-				float turn = master->get_analog(ANALOG_LEFT_Y);  // Gets the turn left/right from right joystick
+				float dir = master->get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+				float turn = master->get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
+
+				turn *= -1;
 
 				dir *= driveControlSpeed.forwardBackSpeed;
 				turn *= driveControlSpeed.turnSpeed;
 				
+				// Clamp the range to above one only to remove back movement
+				if (!allowBackMove) {
+					dir = std::clamp(dir, 0.0f, 1.0f);
+				}
+
 				std::int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
 				std::int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
 
@@ -440,6 +479,12 @@ namespace hyper {
 			/// @brief Fallback control that DriveControlMode switch statement defaults to.
 			void fallbackControl() {
 				arcadeControl();
+			}
+
+			/// @brief Calibrates the IMU
+			void calibrateIMU() {
+				imu.reset();
+				imu.tare();
 			}
 
 			/// @brief Sets the driver control mode
@@ -457,20 +502,110 @@ namespace hyper {
 				}
 			}
 
-			/// @brief Gets the driver control mode
+			/// @brief Sets movement velocity
 			/// @param leftVoltage Voltage for left motor
 			/// @param rightVoltage Voltage for right motor
-			/// @return Driver control mode
 			void moveVelocity(std::int16_t leftVoltage, std::int16_t rightVoltage) {
 				left_mg.move_velocity(leftVoltage);
 				right_mg.move_velocity(rightVoltage);
 			}
 
-			/// @brief Gets the driver control mode
-			/// @param pos Position to move to
-			void moveRelative(double pos) {
-				left_mg.move_relative(pos, maxRelativeVelocity);
-				right_mg.move_relative(pos, maxRelativeVelocity);
+			/// @brief Moves the motors at a single velocity
+			/// @param voltage Voltage to move the motors at
+			void moveSingleVelocity(std::int16_t voltage) {
+				moveVelocity(voltage, voltage);
+			}
+
+			/// @brief Stops moving the motors
+			void moveStop() {
+				moveSingleVelocity(0);
+			}
+
+			/// @brief Tares the motors
+			void tareMotors() {
+				left_mg.tare_position();
+				right_mg.tare_position();
+			}
+
+			/// @brief Move to relative position
+			/// @param pos Position to move to in CM
+			void moveRelPos(double pos) {
+				tareMotors();
+
+				pos *= relativeMovementCoefficient;
+
+				left_mg.move_relative(pos, defaultMoveVelocity);
+				right_mg.move_relative(pos, defaultMoveVelocity);
+
+				double lowerError = pos - maxRelativeError;
+
+				while ((
+					!(left_mg.get_position() > lowerError)
+				) && (
+					!(right_mg.get_position() > lowerError)
+				)) {
+					pros::delay(moveDelayMs);
+				}
+
+				moveStop();
+			}
+
+			/// @brief Turn to a specific angle
+			/// @param angle Angle to turn to
+			void turnTo(double angle) {
+				imu.tare();
+
+				double currentHeading = imu.get_heading();
+				double angleDifference = normaliseAngle(angle - currentHeading);
+
+				std::int16_t turnDirection = (angleDifference > 0) ? maxTurnVelocity : -maxTurnVelocity;
+				//std::int16_t turnDirection = maxTurnVelocity;
+				
+				left_mg.move_velocity(turnDirection);
+				right_mg.move_velocity(-turnDirection);
+
+				while (true) {
+					currentHeading = imu.get_heading();
+					angleDifference = normaliseAngle(angle - currentHeading);
+					
+					if (std::fabs(angleDifference) <= minTurnThreshold) {
+						break;
+					}
+					
+					pros::lcd::set_text(2, "Current heading: " + std::to_string(currentHeading));
+					pros::delay(moveDelayMs);
+				}
+
+				moveStop();
+			}
+
+			/// @brief Turn to a specific angle with a delay
+			/// @param angle Angle to turn to
+			/// @param delayMs Delay in milliseconds
+			void turnDelay(bool direction, std::uint32_t delayMs) {
+				std::int16_t turnDirection = (direction) ? maxTurnVelocity : -maxTurnVelocity;
+
+				left_mg.move_velocity(turnDirection);
+				right_mg.move_velocity(-turnDirection);
+
+				pros::delay(delayMs);
+
+				moveStop();
+			}
+
+			/// @brief Move forward for a certain number of milliseconds
+			/// @param delayMs Number of milliseconds to move forward
+			/// @param left Whether to move the left motor
+			/// @param right Whether to move the right motor
+			void moveDelay(std::uint32_t delayMs, bool forward = true) {
+				if (forward) {
+					moveSingleVelocity(defaultMoveVelocity);
+				} else {
+					moveSingleVelocity(-defaultMoveVelocity);
+				}
+
+				pros::delay(delayMs);
+				moveStop();
 			}
 
 			/// @brief Gets the left motor group
@@ -550,7 +685,9 @@ namespace hyper {
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			MogoMech(MogoMechArgs args) : 
-				AbstractMech(args.abstractMechArgs) {};
+				AbstractMech(args.abstractMechArgs) {
+					actuate(true);
+				};
 
 			/// @brief Runs every loop to check if the button has been pressed
 			void opControl () override {
@@ -577,10 +714,9 @@ namespace hyper {
 
 		private:
 			ReqPointers reqPointers;
-
-			BiToggle toggle;
 		protected:
 		public:
+			BiToggle toggle;
 
 			/// @brief Args for conveyer object
 			/// @param abstractMGArgs Args for AbstractMG object
@@ -591,26 +727,21 @@ namespace hyper {
 				ReqPointers reqPointers;
 			};
 
-			struct Buttons {
-				pros::controller_digital_e_t fwd = pros::E_CONTROLLER_DIGITAL_L1;
-				pros::controller_digital_e_t back = pros::E_CONTROLLER_DIGITAL_L2;
-			};
-
-			Buttons btns = {};
-
 			Conveyer(ConveyerArgs args) :
 				AbstractMG(args.abstractMGArgs), 
 				reqPointers(args.reqPointers),
 				toggle({this, {
-					pros::E_CONTROLLER_DIGITAL_L1,
-					pros::E_CONTROLLER_DIGITAL_L2
-				}}) {};
+					pros::E_CONTROLLER_DIGITAL_L2,
+					pros::E_CONTROLLER_DIGITAL_L1
+				}}) {
+					speeds = {250, -250};
+				};
 
 			bool canMove(bool on) override {
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
 				bool liftMechMoving = reqPointers.liftMech->getEngaged();
 
-				bool moveConveyer = mogoMechMoving && on || liftMechMoving && on;
+				bool moveConveyer = (mogoMechMoving && on) || (liftMechMoving && on);
 
 				return moveConveyer;
 			}
@@ -658,27 +789,114 @@ namespace hyper {
 			}
 	}; // class Intake
 
-	// Fix circular dependency
-	class Chassis;
-
-	/// @brief Main auton class
-	class Auton {
+	/// @brief Class for controlling the stopper based on the color sensor
+	class ColorStopper : public AbstractComponent {
 		private:
-			Chassis* chassis;
+			Conveyer* conveyer;
+			LiftMech* liftMech;
+
+			pros::Optical colorSensor;
+
+			bool doStop = false;
 		protected:
 		public:
-			int speed = 100;
-
-			/// @brief Creates auton object
-			/// @param chassis Pointer to chassis object
-			Auton(Chassis* chassis) : 
-				chassis(chassis) {};
-
-			void go() {
-				// TODO: Implement auton
-				
+			/// @brief Args for color stopper object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			struct ColorStopperArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				std::int8_t colorSensorPort;
+				Conveyer* conveyer;
+				LiftMech* liftMech;
 			};
-	}; // class Auton
+
+			struct ColorThresholds {
+				float lower;
+				float upper;
+			};
+
+			vector<ColorThresholds> blue = {{0, 30}, {330, 360}};
+			vector<ColorThresholds> red = {{180, 240}};
+
+			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_Y;
+
+			/// @brief Creates color stopper object
+			/// @param args Args for color stopper object (check args struct for more info)
+			ColorStopper(ColorStopperArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				colorSensor(args.colorSensorPort),
+				conveyer(args.conveyer),
+				liftMech(args.liftMech) {};
+
+			bool isColor(vector<ColorThresholds>& thresholds) {
+				for (ColorThresholds threshold : thresholds) {
+					float reading = colorSensor.get_hue();
+					if (isNumBetween(reading, threshold.lower, threshold.upper)) {
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			void checkStopColor(vector<ColorThresholds>& thresholds) {
+				if (isColor(thresholds)) {
+					conveyer->move(false);
+					liftMech->actuate(true);
+					conveyer->toggle.setState(BiToggle::State::OFF);
+					doStop = false;
+				}
+			}
+
+			/// @brief Runs every loop to check if the button has been pressed
+			void opControl() override {
+				if (master->get_digital(btn)) {
+					doStop = true;
+				}
+
+				if (doStop) {
+					checkStopColor(blue);
+					checkStopColor(red);
+				}
+			}
+	};
+
+	/// @brief Class for stopping based on the ultrasonic sensor
+	class UltraStopper : public AbstractComponent {
+		private:
+		protected:
+		public:
+			/// @brief Args for ultra stopper object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param backUltraPorts Vector of ports for back ultra sensor
+			struct UltraStopperArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				vector<char> backUltraPorts;
+				Drivetrain* dvt;
+			};
+
+			Drivetrain* dvt;
+
+			pros::adi::Ultrasonic ultra;
+
+			float threshold = 10;
+
+			/// @brief Creates ultra stopper object
+			/// @param args Args for ultra stopper object (check args struct for more info)
+			UltraStopper(UltraStopperArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				ultra(args.backUltraPorts[0], args.backUltraPorts[1]),
+				dvt(args.dvt) {};
+
+			void opControl() override {
+				float distance = ultra.get_value();
+
+				if (distance <= threshold) {
+					dvt->allowBackMove = false;
+				} else {
+					dvt->allowBackMove = true;
+				}
+			}
+	};
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
@@ -696,17 +914,20 @@ namespace hyper {
 				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
 				vector<std::int8_t> intakePorts;
+				std::int8_t colorSensorPort;
+				vector<char> backUltraPorts;
 			};
 
 			Drivetrain dvt;
-
-			Auton autonController;
 
 			MogoMech mogoMech;
 			LiftMech liftMech;
 
 			Conveyer conveyer;
 			Intake intake;
+
+			/*ColorStopper colstop;
+			UltraStopper ultraStopper;*/
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
@@ -715,8 +936,9 @@ namespace hyper {
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
 				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts}),
-				autonController(this) {};
+				intake({this, args.intakePorts})/*,
+				colstop({this, args.colorSensorPort, &conveyer, &liftMech})
+				ultraStopper({this, args.backUltraPorts, &dvt})*/ {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -731,11 +953,76 @@ namespace hyper {
 				// Motor groups
 				conveyer.opControl();
 				intake.opControl();
+
+				// Misc (eg color sensor)
+				/*colstop.opControl();
+				ultraStopper.opControl();*/
 			}
 
 			/// @brief Auton function for the chassis
+			// 1000 = 70cm
 			void auton() override {
-				autonController.go();
+				//dvt.moveRelPos(1000);
+				//dvt.turnDelay(true, 5);
+
+				// Because auton is only 15 secs no need to divide into sectors
+				// Move and collect first rings/discombobulate first
+				intake.move(true);
+				dvt.turnDelay(true, 600);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(50);
+
+				// Get the far ring and turn back onto main path
+				dvt.turnDelay(true, 330);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				//dvt.turnDelay(false, 1.5);
+
+				// Get other stack knocked over
+				dvt.moveRelPos(100);
+				// optional: increase speed to intake if we have no harvester
+				//dvt.moveRelPos(130);
+				//dvt.moveDelay(600, false);
+				dvt.turnDelay(false, 550);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(160);
+				
+				// Turn into high wall stake
+				dvt.turnDelay(false, 870);
+				dvt.moveDelay(800, false);
+				intake.move(false);
+				liftMech.actuate(true);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+
+				// Deposit on high wall stake
+				conveyer.move(true, false);
+				pros::delay(2000);
+				conveyer.move(false);
+				liftMech.actuate(false);
+			}
+
+			void skillsSector1() {
+				mogoMech.actuate(false);
+				dvt.moveDelay(300, false);
+				mogoMech.actuate(true);
+				dvt.turnDelay(false, 600);
+				intake.move(true);
+				conveyer.move(true);
+
+				dvt.moveRelPos(90);
+				dvt.turnDelay(false, 400);
+				dvt.moveDelay(300, false);
+
+				mogoMech.actuate(false);
+				
+			}
+
+			void skillsSector2() {
+
+			}
+
+			void skills() override {
+				skillsSector1();
+				skillsSector2();
 			}
 	}; // class Chassis
 
@@ -773,25 +1060,44 @@ namespace hyper {
 		static_assert(std::is_arithmetic<T>::value, "Value must be arithmetic");
 	}
 
-	/// @brief Clamp a value between a min and max
-	/// @param val Value to clamp
-	/// @param min Minimum value
-	/// @param max Maximum value
-	template <typename T>
-	T clamp(const T val, const T min, const T max) {
-		assertArithmetic(val);
-
-		return std::max(min, std::min(val, max));
-	}
-
 	std::int32_t prepareMoveVoltage(float raw) {
 		// Round the number to the nearest integer
 		raw = std::round(raw);
 
 		std::int32_t voltage = static_cast<std::int32_t>(raw);
-		voltage = clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
+		voltage = std::clamp(voltage, MotorBounds::MOVE_MIN, MotorBounds::MOVE_MAX);
 
 		return voltage;
+	}
+
+	/// @brief Assert that a number is between two values
+	/// @param num Number to assert
+	/// @param min Minimum value
+	/// @param max Maximum value
+	template <typename T>
+	bool isNumBetween(T num, T min, T max) {
+		assertArithmetic(num);
+
+		if ((num > min) && (num < max)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/// @brief Normalise an angle to the range [-180, 180]
+	/// @param angle Angle to normalise
+	template <typename T>
+	T normaliseAngle(T angle) {
+		assertArithmetic(angle);
+
+		if (angle > 180) {
+			angle -= 360;
+		} else if (angle < -180) {
+			angle += 360;
+		}
+
+		return angle;
 	}
 } // namespace hyper
 
@@ -809,8 +1115,9 @@ hyper::AbstractChassis* currentChassis;
 
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
-		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS}, 
-	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS});
+		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
+	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, 
+	COLOR_SENSOR_PORT, BACK_ULTRA_PORTS});
 	
 	currentChassis = &defaultChassis;
 }
@@ -869,7 +1176,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	if (DO_AUTON) {
+	if (DO_MATCH_AUTON) {
 		currentChassis->auton();
 	}
 }
@@ -887,8 +1194,12 @@ void pneumaticstestcontrol () {
 void mainControl() {
 	pros::lcd::set_text(0, "> 1408Hyper mainControl ready");
 
-	if (AUTON_TEST) {
+	if (MATCH_AUTON_TEST) {
 		autonomous();
+	}
+
+	if (DO_SKILLS_AUTON) {
+		currentChassis->skills();
 	}
 
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -905,7 +1216,7 @@ void mainControl() {
 
 
 
-		pros::delay(DELAY_TIME_MS); // Run for 20 ms then update
+		pros::delay(MAINLOOP_DELAY_TIME_MS);
 	}
 }
 /**
@@ -934,3 +1245,6 @@ void opcontrol() {
 // i would add more comments
 // what is your favourite programming language
 // i like c++ the most
+
+// anti quick make nothing comment thingy
+// a
