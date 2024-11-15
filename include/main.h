@@ -51,6 +51,8 @@
 #include <type_traits>
 // Math
 #include <cmath>
+// Clamping
+#include <algorithm>
 
 // fmt is gone
 
