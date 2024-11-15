@@ -988,14 +988,14 @@ namespace hyper {
 				dvt.turnDelay(false, 870);
 				dvt.moveDelay(800, false);
 				//intake.move(false);
-				liftMech.actuate(true);
+				//liftMech.actuate(true);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
 				// Deposit on high wall stake
 				//conveyer.move(true, false);
 				pros::delay(2000);
 				//conveyer.move(false);
-				liftMech.actuate(false);
+				//liftMech.actuate(false);
 			}
 
 			void skillsSector1() {
