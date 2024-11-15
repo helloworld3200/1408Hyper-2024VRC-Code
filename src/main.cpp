@@ -992,9 +992,9 @@ namespace hyper {
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
 				// Deposit on high wall stake
-				conveyer.move(true, false);
+				//conveyer.move(true, false);
 				pros::delay(2000);
-				conveyer.move(false);
+				//conveyer.move(false);
 				liftMech.actuate(false);
 			}
 
