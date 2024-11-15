@@ -972,7 +972,7 @@ namespace hyper {
 				// Get the far ring and turn back onto main path
 				// (no longer necessarily needed because we start with 1 ring already in the robot)
 				dvt.turnDelay(true, 330);
-				dvt.moveRelPos(100);
+				dvt.moveRelPos(105);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 				//dvt.turnDelay(false, 1.5);
 
