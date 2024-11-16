@@ -745,8 +745,8 @@ namespace hyper {
 				AbstractMG(args.abstractMGArgs), 
 				reqPointers(args.reqPointers),
 				toggle({this, {
-					pros::E_CONTROLLER_DIGITAL_L2,
-					pros::E_CONTROLLER_DIGITAL_L1
+					pros::E_CONTROLLER_DIGITAL_R2,
+					pros::E_CONTROLLER_DIGITAL_R1
 				}}) {
 					speeds = {250, -250};
 				};
@@ -790,8 +790,8 @@ namespace hyper {
 			Intake(IntakeArgs args) :
 				AbstractMG(args.abstractMGArgs),
 				toggle({this, {
-					pros::E_CONTROLLER_DIGITAL_R1,
-					pros::E_CONTROLLER_DIGITAL_R2
+					pros::E_CONTROLLER_DIGITAL_L1,
+					pros::E_CONTROLLER_DIGITAL_L2
 				}}) {}
 
 			bool canMove(bool on) override {
