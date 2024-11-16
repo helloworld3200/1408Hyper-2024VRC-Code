@@ -304,22 +304,27 @@ namespace hyper {
 						component->move(true, false);
 						break;
 				}
+				
 				state = target;
 			}
 
 			void handleFwdBtn() {
 				if (state == State::FWD) {
 					moveState(State::OFF);
+					pros::lcd::print(1, "Fwd pressed AND GOING OFF");
 				} else {
 					moveState(State::FWD);
+					pros::lcd::print(1, "Fwd pressed AND GOING FWD");
 				}
 			}
 
 			void handleBackBtn() {
 				if (state == State::BACK) {
 					moveState(State::OFF);
+					pros::lcd::print(1, "Back pressed AND GOING OFF");
 				} else {
 					moveState(State::BACK);
+					pros::lcd::print(1, "Back pressed AND GOING BACK");
 				}
 			}
 		protected:
@@ -353,6 +358,9 @@ namespace hyper {
 				bool fwdPressed = master->get_digital(btns.fwd);
 				bool backPressed = master->get_digital(btns.back);
 
+				pros::lcd::print(3, ("FWD: " + std::to_string(fwdPressed)).c_str());
+				pros::lcd::print(4, ("BACK: " + std::to_string(backPressed)).c_str());
+
 				if (fwdPressed && backPressed) {
 					// Don't do anything if both are pressed
 					// TODO: test whether the return works
@@ -361,14 +369,20 @@ namespace hyper {
 				}
 
 				if (fwdPressed) {
+					pros::lcd::print(2, "Begin CONVEYER FWD");
 					handleFwdBtn();
 					isNewPress = false;
-				} else if (backPressed) {
+					return;
+				}
+
+				if (backPressed) {
+					pros::lcd::print(2, "Begin CONVEYER BACK");
 					handleBackBtn();
 					isNewPress = false;
-				} else {
-					isNewPress = true;
+					return;
 				}
+
+				isNewPress = true;
 			}
 
 			void setState(State target) {
