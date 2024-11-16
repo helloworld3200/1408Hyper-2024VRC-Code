@@ -1001,15 +1001,15 @@ namespace hyper {
 				// Turn into high wall stake & deposit
 				dvt.turnDelay(false, 870);
 				dvt.moveDelay(800, false);
-				//intake.move(false);
-				//liftMech.actuate(true);
+				intake.move(false);
+				liftMech.actuate(true);
 				//pros::delay(MAINLOOP_DELAY_TIME_MS);
 
 				// Deposit on high wall stake
-				//conveyer.move(true, false);
+				conveyer.move(true, false);
 				pros::delay(2000);
-				//conveyer.move(false);
-				//liftMech.actuate(false);
+				conveyer.move(false);
+				liftMech.actuate(false);
 			}
 
 			void skillsSector1() {
