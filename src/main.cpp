@@ -976,7 +976,10 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
-				// Because auton is only 15 secs no need to divide into sectors
+				intake.move(true, false);
+				conveyer.move(true);
+
+				/*// Because auton is only 15 secs no need to divide into sectors
 				// Move and collect first rings/discombobulate first
 				//intake.move(true);
 				dvt.turnDelay(true, 600);
@@ -1009,7 +1012,7 @@ namespace hyper {
 				//conveyer.move(true, false);
 				pros::delay(2000);
 				//conveyer.move(false);
-				//liftMech.actuate(false);
+				//liftMech.actuate(false);*/
 			}
 
 			void skillsSector1() {
