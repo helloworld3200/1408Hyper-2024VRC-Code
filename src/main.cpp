@@ -915,6 +915,82 @@ namespace hyper {
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
 		private:
+			void defaultAuton() {
+				// destruction 100
+
+				/*//dvt.moveRelPos(300);
+				//
+				dvt.turnDelay(true, 600);
+				dvt.moveRelPos(100);
+				dvt.turnDelay(false, 400);
+				//dvt.moveRelPos(150);
+				dvt.turnDelay(true, 300);*/
+
+				/*intake.move(true, false);
+				conveyer.move(true);*/
+
+				// Because auton is only 15 secs no need to divide into sectors
+				// Move and collect first rings/discombobulate first
+				//intake.move(true);
+				dvt.turnDelay(true, 600);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(50);
+
+				// Get the far ring and turn back onto main path
+				// (no longer necessarily needed because we start with 1 ring already in the robot)
+				dvt.turnDelay(true, 330);
+				dvt.moveRelPos(105);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				//dvt.turnDelay(false, 1.5);
+
+				// Get other stack knocked over
+				// optional: increase speed to intake if we have no harvester
+				//dvt.moveRelPos(130);
+				//dvt.moveDelay(600, false);
+				dvt.turnDelay(false, 450);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				dvt.moveRelPos(160);
+				
+				// Turn into high wall stake & deposit
+				dvt.turnDelay(false, 870);
+				dvt.moveDelay(800, false);
+				//intake.move(false);
+				//liftMech.actuate(true);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+
+				// Deposit on high wall stake
+				//conveyer.move(true, false);
+				pros::delay(2000);
+				//conveyer.move(false);
+				//liftMech.actuate(false);
+			}
+
+			void linedAuton() {
+				dvt.moveRelPos(115);
+			}
+			
+			void calcCoefficientAuton()  {
+				dvt.moveRelPos(100);
+			}
+
+			void skillsSector1() {
+				mogoMech.actuate(false);
+				dvt.moveDelay(300, false);
+				mogoMech.actuate(true);
+				dvt.turnDelay(false, 600);
+				intake.move(true);
+				conveyer.move(true);
+
+				dvt.moveRelPos(90);
+				dvt.turnDelay(false, 400);
+				dvt.moveDelay(300, false);
+
+				mogoMech.actuate(false);
+			}
+
+			void skillsSector2() {
+
+			}
 		protected:
 		public:
 			/// @brief Args for chassis object
@@ -976,73 +1052,9 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
-				// destruction 100
-
-				/*//dvt.moveRelPos(300);
-				//
-				dvt.turnDelay(true, 600);
-				dvt.moveRelPos(100);
-				dvt.turnDelay(false, 400);
-				//dvt.moveRelPos(150);
-				dvt.turnDelay(true, 300);*/
-
-				/*intake.move(true, false);
-				conveyer.move(true);*/
-
-				// Because auton is only 15 secs no need to divide into sectors
-				// Move and collect first rings/discombobulate first
-				//intake.move(true);
-				dvt.turnDelay(true, 600);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(50);
-
-				// Get the far ring and turn back onto main path
-				// (no longer necessarily needed because we start with 1 ring already in the robot)
-				dvt.turnDelay(true, 330);
-				dvt.moveRelPos(105);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				//dvt.turnDelay(false, 1.5);
-
-				// Get other stack knocked over
-				// optional: increase speed to intake if we have no harvester
-				//dvt.moveRelPos(130);
-				//dvt.moveDelay(600, false);
-				dvt.turnDelay(false, 450);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(160);
-				
-				// Turn into high wall stake & deposit
-				dvt.turnDelay(false, 870);
-				dvt.moveDelay(800, false);
-				//intake.move(false);
-				//liftMech.actuate(true);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-
-				// Deposit on high wall stake
-				//conveyer.move(true, false);
-				pros::delay(2000);
-				//conveyer.move(false);
-				//liftMech.actuate(false);
-			}
-
-			void skillsSector1() {
-				mogoMech.actuate(false);
-				dvt.moveDelay(300, false);
-				mogoMech.actuate(true);
-				dvt.turnDelay(false, 600);
-				intake.move(true);
-				conveyer.move(true);
-
-				dvt.moveRelPos(90);
-				dvt.turnDelay(false, 400);
-				dvt.moveDelay(300, false);
-
-				mogoMech.actuate(false);
-				
-			}
-
-			void skillsSector2() {
-
+				//defaultAuton();
+				calcCoefficientAuton();
+				//linedAuton();
 			}
 
 			void skills() override {
