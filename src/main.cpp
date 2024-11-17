@@ -976,6 +976,16 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
+				// destruction 100
+
+				/*//dvt.moveRelPos(300);
+				//
+				dvt.turnDelay(true, 600);
+				dvt.moveRelPos(100);
+				dvt.turnDelay(false, 400);
+				//dvt.moveRelPos(150);
+				dvt.turnDelay(true, 300);*/
+
 				/*intake.move(true, false);
 				conveyer.move(true);*/
 
