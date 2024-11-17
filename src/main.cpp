@@ -452,6 +452,7 @@ namespace hyper {
 			float minTurnThreshold = 5;
 
 			float relativeMovementCoefficient = 14.2857;
+			float voltMovementCoefficient = 1;
 
 			uint32_t moveDelayMs = 2;
 
@@ -514,6 +515,20 @@ namespace hyper {
 						bindDriveControl(&Drivetrain::fallbackControl);
 						break;
 				}
+			}
+
+			/// @brief Moves the motors at a specific voltage
+			/// @param leftVoltage Voltage for left motor
+			/// @param rightVoltage Voltage for right motor
+			void moveVoltage(std::int16_t leftVoltage, std::int16_t rightVoltage) {
+				left_mg.move_voltage(leftVoltage);
+				right_mg.move_voltage(rightVoltage);
+			}
+
+			/// @brief Moves the motors at a single voltage
+			/// @param voltage Voltage to move the motors at
+			void moveSingleVoltage(std::int16_t voltage) {
+				moveVoltage(voltage, voltage);
 			}
 
 			/// @brief Sets movement velocity
@@ -619,6 +634,20 @@ namespace hyper {
 				}
 
 				pros::delay(delayMs);
+				moveStop();
+			}
+
+			/// @brief PID Turn to specific angle
+			/// @param angle Angle to move to
+			void PIDTurn(double angle) {
+				tareMotors();
+
+				
+
+				while (true) {
+
+				}
+
 				moveStop();
 			}
 
@@ -966,7 +995,7 @@ namespace hyper {
 			}
 
 			void linedAuton() {
-				dvt.moveRelPos(115);
+				dvt.moveRelPos(10);
 			}
 			
 			void calcCoefficientAuton()  {
@@ -1053,8 +1082,8 @@ namespace hyper {
 			// 1000 = 70cm
 			void auton() override {
 				//defaultAuton();
-				calcCoefficientAuton();
-				//linedAuton();
+				//calcCoefficientAuton();
+				linedAuton();
 			}
 
 			void skills() override {
