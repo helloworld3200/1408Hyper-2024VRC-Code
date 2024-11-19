@@ -403,6 +403,28 @@ namespace hyper {
 
 			};
 		private:
+			class DirectionSigns {
+				public:
+					enum class Signs {
+						POSITIVE,
+						NEGATIVE,
+						ZERO
+					};
+
+					Signs lateralSign;
+					Signs turnSign;
+
+					DirectionSigns(float lateral, float turn) : 
+						lateralSign(lateral > 0 ? Signs::POSITIVE : (lateral < 0 ? Signs::NEGATIVE : Signs::ZERO)),
+						turnSign(turn > 0 ? Signs::POSITIVE : (turn < 0 ? Signs::NEGATIVE : Signs::ZERO)) {};
+			};
+
+			// Coefficients for turning in driver control
+			struct TurnCoefficients {
+				float left;
+				float right;
+			};
+
 			pros::MotorGroup left_mg;
 			pros::MotorGroup right_mg;
 
@@ -418,11 +440,14 @@ namespace hyper {
 		protected:
 		public:
 			/// @brief Struct for different driver control speeds
-			/// @param turnSpeed Speed for turning
-			/// @param forwardBackSpeed Speed for forward/backward
+			/// @param turnSpeed Multiplier for only turning
+			/// @param forwardBackSpeed Multiplier for only forward/backward
+			/// @param arcSpeed Multiplier of opposite turn for when turning and moving laterally at the same time
+			// (higher value means less lateral movement)
 			struct DriveControlSpeed {
 				float turnSpeed = 2;
 				float forwardBackSpeed = 2;
+				float arcSpeed = 0.6;
 			};
 
 			/// @brief Ports for the drivetrain
@@ -456,6 +481,9 @@ namespace hyper {
 
 			uint32_t moveDelayMs = 2;
 
+			// The lowest amount which we would consider movement
+			float movementEpsilon = 0.1;
+
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
@@ -464,28 +492,60 @@ namespace hyper {
 					setDriveControlMode();
 					calibrateIMU();
 				};
+		private:
+			void prepareArcadeLateral(float& lateral) {
+				// Change to negative to invert
+				lateral *= 1;
 
+				// Clamp the range to above 0 only to remove back movement
+				if (preventBackMove && (lateral < movementEpsilon)) {
+					lateral = 0;
+				}
+
+				lateral *= driveControlSpeed.forwardBackSpeed;
+			}
+
+			// Calculate the movement of the robot when turning and moving laterally at the same time
+			void calculateArcMovement(TurnCoefficients& turnCoeffs, float turn) {
+				if (turn > 0) { // Turning to right
+					turnCoeffs.left *= driveControlSpeed.arcSpeed;
+				} else { // Turning to left
+					turnCoeffs.right *= driveControlSpeed.arcSpeed;
+				}
+			}
+
+			TurnCoefficients calculateArcadeTurns(float turn, float lateral) {
+				turn *= -1;
+				turn *= driveControlSpeed.turnSpeed;
+
+				TurnCoefficients turnCoeffs = {turn, turn};
+
+				lateral = std::fabs(lateral);
+
+				// Allow for arc movement
+				if (lateral > movementEpsilon) {
+					calculateArcMovement(turnCoeffs, turn);
+				}
+
+				return turnCoeffs;
+			}
+		public:
 			void opControl() override {
 				driveControl();
 			}
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
 			void arcadeControl() {
-				float dir = master->get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+				float lateral = master->get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 				float turn = master->get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
 
-				turn *= -1;
+				prepareArcadeLateral(lateral);
 
-				// Clamp the range to above 0 only to remove back movement
-				if (preventBackMove && (dir > 0)) {
-					dir = 0;
-				}
+				TurnCoefficients turnCoeffs = calculateArcadeTurns(turn, lateral);
 
-				dir *= driveControlSpeed.forwardBackSpeed;
-				turn *= driveControlSpeed.turnSpeed;
-
-				std::int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
-				std::int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
+				// Ensure voltages are within correct ranges
+				std::int32_t left_voltage = prepareMoveVoltage(lateral - turnCoeffs.left);
+				std::int32_t right_voltage = prepareMoveVoltage(lateral + turnCoeffs.right);
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
