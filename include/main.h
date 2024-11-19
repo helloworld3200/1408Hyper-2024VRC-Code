@@ -53,6 +53,10 @@
 #include <cmath>
 // Clamping
 #include <algorithm>
+// Error numbers
+#include <cerrno>
+// Standard library
+#include <cstdlib>
 
 // fmt is gone
 

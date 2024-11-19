@@ -443,7 +443,7 @@ namespace hyper {
 
 			DriveControlSpeed driveControlSpeed = {};
 
-			bool allowBackMove = true;
+			bool preventBackMove = false;
 
 			std::int32_t defaultMoveVelocity = 1024;
 			std::int8_t maxRelativeError = 5;
@@ -476,13 +476,13 @@ namespace hyper {
 
 				turn *= -1;
 
+				// Clamp the range to above 0 only to remove back movement
+				if (preventBackMove && (dir > 0)) {
+					dir = 0;
+				}
+
 				dir *= driveControlSpeed.forwardBackSpeed;
 				turn *= driveControlSpeed.turnSpeed;
-				
-				// Clamp the range to above one only to remove back movement
-				if (!allowBackMove) {
-					dir = std::clamp(dir, 0.0f, 1.0f);
-				}
 
 				std::int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
 				std::int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
@@ -934,9 +934,9 @@ namespace hyper {
 				float distance = ultra.get_value();
 
 				if (distance <= threshold) {
-					dvt->allowBackMove = false;
+					dvt->preventBackMove = true;
 				} else {
-					dvt->allowBackMove = true;
+					dvt->preventBackMove = false;
 				}
 			}
 	};
