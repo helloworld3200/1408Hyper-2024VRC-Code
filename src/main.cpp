@@ -403,22 +403,6 @@ namespace hyper {
 
 			};
 		private:
-			class DirectionSigns {
-				public:
-					enum class Signs {
-						POSITIVE,
-						NEGATIVE,
-						ZERO
-					};
-
-					Signs lateralSign;
-					Signs turnSign;
-
-					DirectionSigns(float lateral, float turn) : 
-						lateralSign(lateral > 0 ? Signs::POSITIVE : (lateral < 0 ? Signs::NEGATIVE : Signs::ZERO)),
-						turnSign(turn > 0 ? Signs::POSITIVE : (turn < 0 ? Signs::NEGATIVE : Signs::ZERO)) {};
-			};
-
 			// Coefficients for turning in driver control
 			struct TurnCoefficients {
 				float left;
@@ -481,9 +465,6 @@ namespace hyper {
 
 			uint32_t moveDelayMs = 2;
 
-			// The lowest amount which we would consider movement
-			float movementEpsilon = 0.1;
-
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
@@ -498,7 +479,7 @@ namespace hyper {
 				lateral *= 1;
 
 				// Clamp the range to above 0 only to remove back movement
-				if (preventBackMove && (lateral < movementEpsilon)) {
+				if (preventBackMove && (lateral < 0)) {
 					lateral = 0;
 				}
 
@@ -506,7 +487,7 @@ namespace hyper {
 			}
 
 			// Calculate the movement of the robot when turning and moving laterally at the same time
-			void calculateArcMovement(TurnCoefficients& turnCoeffs, float turn) {
+			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn) {
 				if (turn > 0) { // Turning to right
 					turnCoeffs.left *= driveControlSpeed.arcSpeed;
 				} else { // Turning to left
@@ -523,9 +504,7 @@ namespace hyper {
 				lateral = std::fabs(lateral);
 
 				// Allow for arc movement
-				if (lateral > movementEpsilon) {
-					calculateArcMovement(turnCoeffs, turn);
-				}
+				calculateArcMovement(turnCoeffs, lateral, turn);
 
 				return turnCoeffs;
 			}
