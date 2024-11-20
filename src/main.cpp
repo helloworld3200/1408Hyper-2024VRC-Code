@@ -487,11 +487,19 @@ namespace hyper {
 			}
 
 			// Calculate the movement of the robot when turning and moving laterally at the same time
-			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn) {
-				if (turn > 0) { // Turning to right
-					turnCoeffs.left *= driveControlSpeed.arcSpeed;
-				} else { // Turning to left
-					turnCoeffs.right *= driveControlSpeed.arcSpeed;
+			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn, float maxLateralTolerance = 1) {
+				// Max lateral movement possible (127 is the max value returned by the controller)
+				// TODO: Precalculate this for optimization
+				float maxLateral = driveControlSpeed.forwardBackSpeed * 127 + maxLateralTolerance;
+				// 0-1 range of percentage of lateral movement against max possible lateral movement
+				float lateralCompensation = lateral / maxLateral;
+				// Decrease the turn speed when moving laterally
+				float turnDecrease = turn * driveControlSpeed.arcSpeed * lateralCompensation;
+
+				if (turn > 0) { // Turning to right so we decrease the left MG
+					turnCoeffs.left -= turnDecrease;
+				} else { // Turning to left so we decrease the right MG
+					turnCoeffs.right -= turnDecrease;
 				}
 			}
 
@@ -500,8 +508,6 @@ namespace hyper {
 				turn *= driveControlSpeed.turnSpeed;
 
 				TurnCoefficients turnCoeffs = {turn, turn};
-
-				lateral = std::fabs(lateral);
 
 				// Allow for arc movement
 				calculateArcMovement(turnCoeffs, lateral, turn);
