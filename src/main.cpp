@@ -429,10 +429,42 @@ namespace hyper {
 			/// @param arcSpeed Multiplier of opposite turn for when turning and moving laterally at the same time
 			// (higher value means less lateral movement)
 			struct DriveControlSpeed {
-				float turnSpeed = 2;
-				float forwardBackSpeed = 2;
-				float arcSpeed = 0.6;
+				private:
+					float forwardBackSpeed;
+					float maxLateral;
+				public:
+					static constexpr float controllerMax = 127;
+
+					float turnSpeed;
+					float arcSpeed;
+
+					/// @brief Sets the forward/backward speed
+					/// @param speed Speed to set the forward/backward speed to
+					// (Also prepares maxLateral for arc movement)
+					void setForwardBackSpeed(float speed, float maxTolerance = 1) {
+						forwardBackSpeed = speed;
+						maxLateral = speed * controllerMax + maxTolerance;
+					}
+
+					/// @brief Gets the forward/backward speed
+					/// @return Forward/backward speed
+					float getForwardBackSpeed() {
+						return forwardBackSpeed;
+					}
+
+					/// @brief Gets the max lateral movement
+					/// @return Max lateral movement
+					float getMaxLateral() {
+						return maxLateral;
+					}
+
+					DriveControlSpeed(float turnSpeed = 2, float forwardBackSpeed = 2, float arcSpeed = 0.6) :
+						turnSpeed(turnSpeed), 
+						arcSpeed(arcSpeed) {
+							setForwardBackSpeed(forwardBackSpeed);
+						}
 			};
+
 
 			/// @brief Ports for the drivetrain
 			/// @param leftPorts Vector of ports for left motors
@@ -483,16 +515,13 @@ namespace hyper {
 					lateral = 0;
 				}
 
-				lateral *= driveControlSpeed.forwardBackSpeed;
+				lateral *= driveControlSpeed.getForwardBackSpeed();
 			}
 
 			// Calculate the movement of the robot when turning and moving laterally at the same time
 			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn, float maxLateralTolerance = 1) {
-				// Max lateral movement possible (127 is the max value returned by the controller)
-				// TODO: Precalculate this for optimization
-				float maxLateral = driveControlSpeed.forwardBackSpeed * 127 + maxLateralTolerance;
 				// 0-1 range of percentage of lateral movement against max possible lateral movement
-				float lateralCompensation = lateral / maxLateral;
+				float lateralCompensation = lateral / driveControlSpeed.getMaxLateral();
 				// Decrease the turn speed when moving laterally
 				float turnDecrease = turn * driveControlSpeed.arcSpeed * lateralCompensation;
 
