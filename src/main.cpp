@@ -9,12 +9,10 @@
 // ending in -mech classes are for pneumatics
 
 // currently using legacy toggles (not using MechToggle class):
-// mogomech
-
-// TODO: upgrade the following to use BiToggle class:
-// conveyer, intake (needs to be upgraded to use AbstractMG class first)
+// mogomech - maybe try to upgrade to MechToggle?
 
 // TODO: Create drivetrain utility functions e.g. forward, turn degrees, etc.
+// (with PID!!!! SPECIFICALLY turning and lateral)
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
