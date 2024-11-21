@@ -723,6 +723,22 @@ namespace hyper {
 				moveStop();
 			}
 
+			/// @brief PID Move to specific position
+			/// @param pos Position to move to
+			void PIDMove(double pos) {
+				// TODO: Consider adding odometry wheels as the current motor encoders
+				// can be unreliable for long distances
+				tareMotors();
+
+
+
+				while (true) {
+
+				}
+
+				moveStop();
+			}
+
 			/// @brief Gets the left motor group
 			pros::MotorGroup& getLeftMotorGroup() {
 				return left_mg;
