@@ -483,6 +483,14 @@ namespace hyper {
 				DrivetrainPorts ports;
 			};
 
+			/// @brief Struct for PID options (self-explanatory)
+			struct PIDOptions {
+				double kP;
+				double kI;
+				double kD;
+				double errorThreshold;
+			};
+
 			DriveControlSpeed driveControlSpeed = {};
 
 			bool preventBackMove = false;
@@ -495,6 +503,10 @@ namespace hyper {
 
 			float relativeMovementCoefficient = 14.2857;
 			float voltMovementCoefficient = 1;
+
+			float maxVoltage = 12000;
+
+			double inchesPerTick = 0.025525;
 
 			uint32_t moveDelayMs = 2;
 
@@ -712,18 +724,54 @@ namespace hyper {
 				moveStop();
 			}
 
+			// TODO: Generic PID function that we can apply to PIDTurn and PIDMove
+			// maybe make a class for this? if it gets too complicated
+			// but that would also require refactoring Drivetrain to have an AbstractDrivetrain
+			// parent to avoid cyclic dependencies
+
+			// WARNING: do NOT use relativeMovementCoefficient for PID functions
+			// as this does not account for acceleration/deceleration
+			// it's only for simple movement (phased out by PID & PIDOptions struct)
+
 			/// @brief PID Turn to specific angle
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
-			void PIDTurn(double angle) {
+			// TODO: Tuning required
+			void PIDTurn(double angle, PIDOptions options = {
+				0.1, 0.1, 0.1, 1
+			}) {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
 
+				// IMU already tared so we don't need to get the current heading
+				float error = angle;
+				float lastError = 0;
+				float derivative = 0;
+				float integral = 0;
+				float out = 0;
 
 				// with turning you just wanna move the other MG at negative of the MG of the direction
 				// which u wanna turn to
 
 				while (true) {
+					error = naiveNormaliseAngle(angle - imu.get_heading());
 
+					integral += error;
+					// Anti windup
+					if (std::fabs(error) < options.errorThreshold) {
+						integral = 0;
+					}
+
+					derivative = error - lastError;
+					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
+					lastError = error;
+
+					out *= 1000; // convert to mV
+					out = std::clamp(out, -maxVoltage, maxVoltage);
+					moveSingleVoltage(out);
+
+					if (std::fabs(error) <= options.errorThreshold) {
+						break;
+					}
 				}
 
 				moveStop();
@@ -731,18 +779,49 @@ namespace hyper {
 
 			// think about arc motion, odometry, etc.
 			// the key thing is PID.
+			// TUNING REQUIRED!!!
 
 			/// @brief PID Move to specific position
-			/// @param pos Position to move to (use negative for backward)
-			void PIDMove(double pos) {
+			/// @param pos Position to move to in inches (use negative for backward)
+			// TODO: Tuning required
+			void PIDMove(double pos, PIDOptions options = {
+				0.1, 0.1, 0.1, 5
+			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances
 				tareMotors();
 
+				pos /= inchesPerTick;
+
+				float error = pos;
+				float lastError = 0;
+				float derivative = 0;
+				float integral = 0;
+				float out = 0;
+
 				// with moving you just wanna move both MGs at the same speed
 
 				while (true) {
+					// get avg error
+					error = pos - (left_mg.get_position() + right_mg.get_position()) / 2;
 
+					integral += error;
+					// Anti windup
+					if (std::fabs(error) < options.errorThreshold) {
+						integral = 0;
+					}
+
+					derivative = error - lastError;
+					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
+					lastError = error;
+
+					out *= 1000; // convert to mV
+					out = std::clamp(out, -maxVoltage, maxVoltage);
+					moveSingleVoltage(out);
+
+					if (std::fabs(error) <= options.errorThreshold) {
+						break;
+					}
 				}
 
 				moveStop();
