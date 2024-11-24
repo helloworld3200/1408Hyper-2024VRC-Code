@@ -28,6 +28,9 @@ namespace hyper {
 	template <typename T>
 	T normaliseAngle(T angle);
 
+	template <typename T>
+	T naiveNormaliseAngle(T angle);
+
 	// Class declarations
 
 	/// @brief Abstract chassis class for if you want a custom chassis class
@@ -710,11 +713,14 @@ namespace hyper {
 			}
 
 			/// @brief PID Turn to specific angle
-			/// @param angle Angle to move to
+			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			void PIDTurn(double angle) {
-				tareMotors();
+				imu.tare();
+				angle = naiveNormaliseAngle(angle);
 
-				
+
+				// with turning you just wanna move the other MG at negative of the MG of the direction
+				// which u wanna turn to
 
 				while (true) {
 
@@ -723,14 +729,17 @@ namespace hyper {
 				moveStop();
 			}
 
+			// think about arc motion, odometry, etc.
+			// the key thing is PID.
+
 			/// @brief PID Move to specific position
-			/// @param pos Position to move to
+			/// @param pos Position to move to (use negative for backward)
 			void PIDMove(double pos) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances
 				tareMotors();
 
-
+				// with moving you just wanna move both MGs at the same speed
 
 				while (true) {
 
@@ -1253,6 +1262,17 @@ namespace hyper {
 
 		return angle;
 	}
+
+	/// @brief Naively normalise an angle to the range [-180, 180] by simply clamping the value
+	/// @param angle Angle to normalise
+	template <typename T>
+	T naiveNormaliseAngle(T angle) {
+		assertArithmetic(angle);
+
+		angle = std::clamp(angle, -180, 180);
+
+		return angle;
+	}
 } // namespace hyper
 
 // Global variables
@@ -1401,4 +1421,4 @@ void opcontrol() {
 // i like c++ the most
 
 // anti quick make nothing comment thingy
-// a
+// aa
