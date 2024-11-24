@@ -733,7 +733,7 @@ namespace hyper {
 			// as this does not account for acceleration/deceleration
 			// it's only for simple movement (phased out by PID & PIDOptions struct)
 
-			/// @brief PID Turn to specific angle
+			/// @brief Turn to a specific angle using PID
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			// TODO: Tuning required
 			void PIDTurn(double angle, PIDOptions options = {
@@ -781,7 +781,7 @@ namespace hyper {
 			// the key thing is PID.
 			// TUNING REQUIRED!!!
 
-			/// @brief PID Move to specific position
+			/// @brief Move to a specific position using PID
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
