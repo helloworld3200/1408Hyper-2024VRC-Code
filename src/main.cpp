@@ -767,7 +767,7 @@ namespace hyper {
 
 					out *= 1000; // convert to mV
 					out = std::clamp(out, -maxVoltage, maxVoltage);
-					moveSingleVoltage(out);
+					moveVoltage(out, -out);
 
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
@@ -1348,7 +1348,7 @@ namespace hyper {
 	T naiveNormaliseAngle(T angle) {
 		assertArithmetic(angle);
 
-		angle = std::clamp(angle, -180, 180);
+		angle = std::clamp(angle, -180.0, 180.0);
 
 		return angle;
 	}
