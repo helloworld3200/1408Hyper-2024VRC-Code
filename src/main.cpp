@@ -1175,7 +1175,7 @@ namespace hyper {
 			}
 			
 			void calcCoefficientAuton()  {
-				dvt.moveRelPos(100);
+				dvt.PIDMove(40);
 			}
 
 			void skillsSector1() {
@@ -1258,8 +1258,8 @@ namespace hyper {
 			// 1000 = 70cm
 			void auton() override {
 				//defaultAuton();
-				//calcCoefficientAuton();
-				linedAuton();
+				calcCoefficientAuton();
+				//linedAuton();
 			}
 
 			void skills() override {
