@@ -772,6 +772,8 @@ namespace hyper {
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
 					}
+
+					pros::delay(moveDelayMs);
 				}
 
 				moveStop();
@@ -822,6 +824,8 @@ namespace hyper {
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
 					}
+
+					pros::delay(moveDelayMs);
 				}
 
 				moveStop();
