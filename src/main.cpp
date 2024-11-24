@@ -737,7 +737,7 @@ namespace hyper {
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			// TODO: Tuning required
 			void PIDTurn(double angle, PIDOptions options = {
-				0.1, 0.1, 0.1, 1
+				0.1, 0.0, 0.0, 1
 			}) {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
@@ -787,7 +787,7 @@ namespace hyper {
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
-				0.1, 0.1, 0.1, 5
+				0.1, 0.0, 0.0, 5
 			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances
