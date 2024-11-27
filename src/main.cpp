@@ -459,7 +459,9 @@ namespace hyper {
 						return maxLateral;
 					}
 
-					DriveControlSpeed(float turnSpeed = 2, float forwardBackSpeed = 2, float arcSpeed = 0.6) :
+					// lower arc speed is lower turning
+
+					DriveControlSpeed(float turnSpeed = 2, float forwardBackSpeed = 2, float arcSpeed = 0.3) :
 						turnSpeed(turnSpeed), 
 						arcSpeed(arcSpeed) {
 							setForwardBackSpeed(forwardBackSpeed);
@@ -536,17 +538,20 @@ namespace hyper {
 				// 0-1 range of percentage of lateral movement against max possible lateral movement
 				float lateralCompensation = lateral / driveControlSpeed.getMaxLateral();
 				// Decrease the turn speed when moving laterally
-				float turnDecrease = turn * driveControlSpeed.arcSpeed * lateralCompensation;
+				float turnDecrease = turn * driveControlSpeed.arcSpeed * (1 - lateralCompensation);
 
 				if (turn > 0) { // Turning to right so we decrease the left MG
 					turnCoeffs.left -= turnDecrease;
 				} else { // Turning to left so we decrease the right MG
 					turnCoeffs.right -= turnDecrease;
 				}
+
+				pros::lcd::print(4, ("Left Turn Coef: " + std::to_string(turnCoeffs.left)).c_str());
+				pros::lcd::print(5, ("Right Turn Coef: " + std::to_string(turnCoeffs.right)).c_str());
 			}
 
 			TurnCoefficients calculateArcadeTurns(float turn, float lateral) {
-				turn *= -1;
+				turn *= 1;
 				turn *= driveControlSpeed.turnSpeed;
 
 				TurnCoefficients turnCoeffs = {turn, turn};
