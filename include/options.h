@@ -27,7 +27,7 @@
 
 // Ports for telemetry
 // IMU
-#define IMU_PORT 15
+#define IMU_PORT 21
 // Ultrasound (1st is ping port, 2nd is echo port)
 #define BACK_ULTRA_PORTS {'A', 'B'}
 

@@ -752,13 +752,16 @@ namespace hyper {
 				float lastError = 0;
 				float derivative = 0;
 				float integral = 0;
+
 				float out = 0;
+				float trueHeading = 0;
 
 				// with turning you just wanna move the other MG at negative of the MG of the direction
 				// which u wanna turn to
 
 				while (true) {
-					error = naiveNormaliseAngle(angle - imu.get_heading());
+					trueHeading = imu.get_heading() - 180;
+					error = naiveNormaliseAngle(angle - trueHeading);
 
 					integral += error;
 					// Anti windup
@@ -771,8 +774,11 @@ namespace hyper {
 					lastError = error;
 
 					out *= 1000; // convert to mV
-					out = std::clamp(out, -maxVoltage, maxVoltage);
+					out = std::clamp(out, -1000.0f, 1000.0f);
 					moveVoltage(out, -out);
+
+					pros::lcd::print(7, ("PIDTurn Error: " + std::to_string(error)).c_str());
+					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(trueHeading)).c_str());
 
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
@@ -792,7 +798,7 @@ namespace hyper {
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
-				0.08, 0.0, 0.0, 5
+				0.085, 0.0, 0.0, 5
 			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances
@@ -1271,8 +1277,8 @@ namespace hyper {
 			// 1000 = 70cm
 			void auton() override {
 				//defaultAuton();
-				calcCoefficientAuton();
-				//calcTurnAuton();
+				//calcCoefficientAuton();
+				calcTurnAuton();
 				//linedAuton();
 			}
 
