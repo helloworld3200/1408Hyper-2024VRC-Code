@@ -523,7 +523,7 @@ namespace hyper {
 		private:
 			void prepareArcadeLateral(float& lateral) {
 				// Change to negative to invert
-				lateral *= 1;
+				lateral *= -1;
 
 				// Clamp the range to above 0 only to remove back movement
 				if (preventBackMove && (lateral < 0)) {
@@ -792,7 +792,7 @@ namespace hyper {
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
-				0.1, 0.0, 0.0, 5
+				0.08, 0.0, 0.0, 5
 			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances
@@ -1184,7 +1184,11 @@ namespace hyper {
 			}
 			
 			void calcCoefficientAuton()  {
-				dvt.PIDMove(40);
+				dvt.PIDMove(80);
+			}
+
+			void calcTurnAuton() {
+				dvt.PIDTurn(90);
 			}
 
 			void skillsSector1() {
@@ -1268,6 +1272,7 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				calcCoefficientAuton();
+				//calcTurnAuton();
 				//linedAuton();
 			}
 
