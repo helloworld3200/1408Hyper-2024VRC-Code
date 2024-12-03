@@ -579,6 +579,8 @@ namespace hyper {
 				std::int32_t left_voltage = prepareMoveVoltage(lateral - turnCoeffs.left);
 				std::int32_t right_voltage = prepareMoveVoltage(lateral + turnCoeffs.right);
 
+				pros::lcd::print(5, "IMU Heading: %f", imu.get_heading());
+
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
 			}
@@ -589,8 +591,8 @@ namespace hyper {
 			}
 
 			/// @brief Calibrates the IMU
-			void calibrateIMU() {
-				imu.reset();
+			void calibrateIMU(bool blocking = true) {
+				imu.reset(blocking);
 				imu.tare();
 			}
 
@@ -729,6 +731,10 @@ namespace hyper {
 				moveStop();
 			}
 
+			double getHeading() {
+				return imu.get_heading();
+			}
+
 			// TODO: Generic PID function that we can apply to PIDTurn and PIDMove
 			// maybe make a class for this? if it gets too complicated
 			// but that would also require refactoring Drivetrain to have an AbstractDrivetrain
@@ -760,8 +766,8 @@ namespace hyper {
 				// which u wanna turn to
 
 				while (true) {
-					trueHeading = imu.get_heading() - 180;
-					error = naiveNormaliseAngle(angle - trueHeading);
+					trueHeading = imu.get_heading() - 179;
+					error = angle - trueHeading;
 
 					integral += error;
 					// Anti windup
@@ -774,11 +780,12 @@ namespace hyper {
 					lastError = error;
 
 					out *= 1000; // convert to mV
-					out = std::clamp(out, -1000.0f, 1000.0f);
-					moveVoltage(out, -out);
+					out = std::clamp(out, -12000.0f, 12000.0f);
+					moveVoltage(-out, out);
 
+					pros::lcd::print(8, ("PIDTurn Out: " + std::to_string(out)).c_str());
 					pros::lcd::print(7, ("PIDTurn Error: " + std::to_string(error)).c_str());
-					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(trueHeading)).c_str());
+					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(imu.get_heading())).c_str());
 
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
@@ -1193,6 +1200,12 @@ namespace hyper {
 				dvt.PIDMove(80);
 			}
 
+			void testIMUAuton() {
+				dvt.moveVelocity(500, -500);
+				pros::lcd::set_text(5, std::to_string(dvt.getHeading()));
+				pros::delay(10);
+			}
+
 			void calcTurnAuton() {
 				dvt.PIDTurn(90);
 			}
@@ -1279,6 +1292,7 @@ namespace hyper {
 				//defaultAuton();
 				//calcCoefficientAuton();
 				calcTurnAuton();
+				//testIMUAuton();
 				//linedAuton();
 			}
 
