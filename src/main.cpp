@@ -1230,7 +1230,7 @@ namespace hyper {
 				dvt.PIDMove(27);
 
 				// Prepare for opcontrol
-				conveyer.move(false);	
+				conveyer.move(false);
 			}
 
 			void skillsSector1() {
