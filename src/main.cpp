@@ -512,6 +512,8 @@ namespace hyper {
 
 			uint32_t moveDelayMs = 2;
 
+			int pidInvertTurn = 1;
+
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
@@ -753,6 +755,10 @@ namespace hyper {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
 
+				angle *= pidInvertTurn;
+
+				bool anglePositive = angle > 0;
+
 				// IMU already tared so we don't need to get the current heading
 				float error = angle;
 				float lastError = 0;
@@ -984,7 +990,10 @@ namespace hyper {
 
 				bool moveConveyer = (mogoMechMoving && on) || (liftMechMoving && on);
 
-				return moveConveyer;
+				// DISABLE THIS FOR NOW BECAUSE WE DONT HAVE A LIFT MECH
+				//return moveConveyer;
+
+				return on;
 			}
 
 			void opControl() override {
@@ -1238,7 +1247,7 @@ namespace hyper {
 				dvt.moveDelay(300, false);
 				mogoMech.actuate(true);
 				dvt.turnDelay(false, 600);
-				intake.move(true);
+				//intake.move(true);
 				conveyer.move(true);
 
 				dvt.moveRelPos(90);
@@ -1274,9 +1283,9 @@ namespace hyper {
 			LiftMech liftMech;
 
 			Conveyer conveyer;
-			Intake intake;
+			/*Intake intake;
 
-			/*ColorStopper colstop;
+			ColorStopper colstop;
 			UltraStopper ultraStopper;*/
 
 			/// @brief Creates chassis object
@@ -1285,8 +1294,8 @@ namespace hyper {
 				dvt({this, args.dvtPorts}),
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
-				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts})/*,
+				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}})/*, 
+				intake({this, args.intakePorts}),
 				colstop({this, args.colorSensorPort, &conveyer, &liftMech})
 				ultraStopper({this, args.backUltraPorts, &dvt})*/ {};
 
@@ -1302,7 +1311,7 @@ namespace hyper {
 
 				// Motor groups
 				conveyer.opControl();
-				intake.opControl();
+				//intake.opControl();
 
 				// Misc (eg color sensor)
 				/*colstop.opControl();
