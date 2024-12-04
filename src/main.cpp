@@ -1210,6 +1210,29 @@ namespace hyper {
 				dvt.PIDTurn(90);
 			}
 
+			void advancedAuton() {
+				// Deposit preload on low wall stake
+				dvt.moveDelay(1000);
+				conveyer.move(true);
+
+				// Move to mogo
+				dvt.PIDTurn(30);
+				dvt.PIDMove(19);
+				dvt.PIDTurn(179);
+
+				// Collect mogo
+				mogoMech.actuate(true);
+				dvt.PIDMove(19);
+				mogoMech.actuate(false);
+
+				// Collect rings
+				dvt.PIDTurn(-70);
+				dvt.PIDMove(27);
+
+				// Prepare for opcontrol
+				conveyer.move(false);	
+			}
+
 			void skillsSector1() {
 				mogoMech.actuate(false);
 				dvt.moveDelay(300, false);
@@ -1291,9 +1314,10 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				//calcCoefficientAuton();
-				calcTurnAuton();
+				//calcTurnAuton();
 				//testIMUAuton();
 				//linedAuton();
+				advancedAuton();
 			}
 
 			void skills() override {
