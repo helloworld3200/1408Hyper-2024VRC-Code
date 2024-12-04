@@ -581,7 +581,7 @@ namespace hyper {
 				std::int32_t left_voltage = prepareMoveVoltage(lateral - turnCoeffs.left);
 				std::int32_t right_voltage = prepareMoveVoltage(lateral + turnCoeffs.right);
 
-				pros::lcd::print(5, "IMU Heading: %f", imu.get_heading());
+				//pros::lcd::print(4, ("LEFT/RIGHT: " + std::to_string(master->get_analog(ANALOG_LEFT_Y)) + ", " + std::to_string(master->get_analog(ANALOG_RIGHT_X)))).c_str();
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
@@ -1323,10 +1323,10 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				//calcCoefficientAuton();
-				//calcTurnAuton();
+				calcTurnAuton();
 				//testIMUAuton();
 				//linedAuton();
-				advancedAuton();
+				//advancedAuton();
 			}
 
 			void skills() override {
