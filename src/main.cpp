@@ -750,12 +750,14 @@ namespace hyper {
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			// TODO: Tuning required
 			void PIDTurn(double angle, PIDOptions options = {
-				0.1, 0.0, 0.0, 1
+				0.05, 0.0, 0.0, 1
 			}) {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
 
 				angle *= pidInvertTurn;
+
+				angle /= 1;
 
 				bool anglePositive = angle > 0;
 
@@ -772,7 +774,7 @@ namespace hyper {
 				// which u wanna turn to
 
 				while (true) {
-					trueHeading = imu.get_heading() - 179;
+					trueHeading = std::fmod((imu.get_heading() + 180), 360) - 180;
 					error = angle - trueHeading;
 
 					integral += error;
@@ -1216,7 +1218,7 @@ namespace hyper {
 			}
 
 			void calcTurnAuton() {
-				dvt.PIDTurn(90);
+				dvt.PIDTurn(-90);
 			}
 
 			void advancedAuton() {
