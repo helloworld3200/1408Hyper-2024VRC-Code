@@ -1245,18 +1245,26 @@ namespace hyper {
 			}
 
 			void skillsSector1() {
-				mogoMech.actuate(false);
-				dvt.moveDelay(300, false);
+				mogoMech.actuate(false);	
+				dvt.PIDMove(-9);
 				mogoMech.actuate(true);
-				dvt.turnDelay(false, 600);
-				//intake.move(true);
 				conveyer.move(true);
-
-				dvt.moveRelPos(90);
-				dvt.turnDelay(false, 400);
-				dvt.moveDelay(300, false);
-
+				dvt.PIDTurn(-30);
+				dvt.moveDelay(300);
+				dvt.PIDMove(6);
+				dvt.PIDTurn(180);
+				dvt.PIDMove(22);
+				dvt.PIDTurn(90);
+				dvt.PIDMove(22);
+				dvt.PIDTurn(90);
+				dvt.PIDMove(47);
+				dvt.PIDTurn(90);
+				dvt.moveDelay(400, false);
 				mogoMech.actuate(false);
+				dvt.PIDMove(5);
+				dvt.PIDTurn(90);
+
+
 			}
 
 			void skillsSector2() {
