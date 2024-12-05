@@ -619,6 +619,8 @@ namespace hyper {
 			void moveVoltage(std::int16_t leftVoltage, std::int16_t rightVoltage) {
 				left_mg.move_voltage(leftVoltage);
 				right_mg.move_voltage(rightVoltage);
+				pros::lcd::print(0, ("Left Voltage: " + std::to_string(leftVoltage)).c_str());
+				pros::lcd::print(1, ("Right Voltage: " + std::to_string(rightVoltage)).c_str());
 			}
 
 			/// @brief Moves the motors at a single voltage
@@ -724,9 +726,9 @@ namespace hyper {
 			/// @param right Whether to move the right motor
 			void moveDelay(std::uint32_t delayMs, bool forward = true) {
 				if (forward) {
-					moveSingleVelocity(defaultMoveVelocity);
-				} else {
 					moveSingleVelocity(-defaultMoveVelocity);
+				} else {
+					moveSingleVelocity(defaultMoveVelocity);
 				}
 
 				pros::delay(delayMs);
@@ -750,7 +752,7 @@ namespace hyper {
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			// TODO: Tuning required
 			void PIDTurn(double angle, PIDOptions options = {
-				0.05, 0.0, 0.0, 1
+				0.1, 0.0, 0.0, 1
 			}) {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
@@ -760,6 +762,7 @@ namespace hyper {
 				angle /= 1;
 
 				bool anglePositive = angle > 0;
+				bool turn180 = false;
 
 				// IMU already tared so we don't need to get the current heading
 				float error = angle;
@@ -769,6 +772,14 @@ namespace hyper {
 
 				float out = 0;
 				float trueHeading = 0;
+
+				float maxThreshold = 180 - options.errorThreshold;
+
+				if (std::fabs(angle) >= 180) {
+					turn180 = true;
+				}
+
+				pros::lcd::print(3, "PIDTurn Start");
 
 				// with turning you just wanna move the other MG at negative of the MG of the direction
 				// which u wanna turn to
@@ -788,15 +799,25 @@ namespace hyper {
 					lastError = error;
 
 					out *= 1000; // convert to mV
-					out = std::clamp(out, -12000.0f, 12000.0f);
+					out = std::clamp(out, -maxVoltage, maxVoltage);
 					moveVoltage(-out, out);
 
-					pros::lcd::print(8, ("PIDTurn Out: " + std::to_string(out)).c_str());
+					pros::lcd::print(5, ("PIDTurn Out: " + std::to_string(out)).c_str());
 					pros::lcd::print(7, ("PIDTurn Error: " + std::to_string(error)).c_str());
 					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(imu.get_heading())).c_str());
 
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
+					}
+
+					// 180 degree turning
+					if (std::fabs(trueHeading) >= maxThreshold) {
+						break;
+					}
+
+					// TODO: refactor checks in prod
+					if (std::fabs(out) < 100) {
+						pros::lcd::print(4, "PIDTurn Out too low");
 					}
 
 					pros::delay(moveDelayMs);
@@ -820,6 +841,7 @@ namespace hyper {
 				tareMotors();
 
 				pos /= inchesPerTick;
+				pos *= -1;
 
 				float error = pos;
 				float lastError = 0;
@@ -1208,7 +1230,7 @@ namespace hyper {
 			}
 			
 			void calcCoefficientAuton()  {
-				dvt.PIDMove(80);
+				dvt.PIDMove(96);
 			}
 
 			void testIMUAuton() {
@@ -1218,17 +1240,21 @@ namespace hyper {
 			}
 
 			void calcTurnAuton() {
-				dvt.PIDTurn(-90);
+				dvt.PIDTurn(-180);
 			}
 
 			void advancedAuton() {
 				// Deposit preload on low wall stake
-				dvt.moveDelay(1000);
-				conveyer.move(true);
+				dvt.PIDMove(5);
+				pros::lcd::print(2, "Initial phase complete");
+				//conveyer.move(true);
 
 				// Move to mogo
-				dvt.PIDTurn(30);
-				dvt.PIDMove(19);
+				// CURSED LINE!!!!
+				//dvt.PIDTurn(-30);
+
+				
+				dvt.PIDMove(-19);
 				dvt.PIDTurn(179);
 
 				// Collect mogo
@@ -1241,7 +1267,7 @@ namespace hyper {
 				dvt.PIDMove(27);
 
 				// Prepare for opcontrol
-				conveyer.move(false);
+				//conveyer.move(false);
 			}
 
 			void skillsSector1() {
@@ -1333,10 +1359,10 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				//calcCoefficientAuton();
-				calcTurnAuton();
+				//calcTurnAuton();
 				//testIMUAuton();
 				//linedAuton();
-				//advancedAuton();
+				advancedAuton();
 			}
 
 			void skills() override {
