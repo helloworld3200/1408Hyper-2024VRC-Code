@@ -1226,7 +1226,9 @@ namespace hyper {
 			}
 
 			void linedAuton() {
-				dvt.moveRelPos(10);
+				dvt.PIDMove(14);
+				dvt.PIDTurn(-45);
+				dvt.moveDelay(500);
 			}
 			
 			void calcCoefficientAuton()  {
@@ -1253,9 +1255,10 @@ namespace hyper {
 				// CURSED LINE!!!!
 				//dvt.PIDTurn(-30);
 
-				
+				dvt.PIDTurn(-30);
 				dvt.PIDMove(-19);
 				dvt.PIDTurn(179);
+				dvt.PIDMove(43);
 
 				// Collect mogo
 				mogoMech.actuate(true);
@@ -1264,7 +1267,10 @@ namespace hyper {
 
 				// Collect rings
 				dvt.PIDTurn(-70);
+				intake.move(true);
 				dvt.PIDMove(27);
+				pros::delay(500);
+				intake.move(false);
 
 				// Prepare for opcontrol
 				//conveyer.move(false);
@@ -1275,22 +1281,23 @@ namespace hyper {
 				dvt.PIDMove(-9);
 				mogoMech.actuate(true);
 				conveyer.move(true);
+
 				dvt.PIDTurn(-30);
 				dvt.moveDelay(300);
 				dvt.PIDMove(6);
 				dvt.PIDTurn(180);
 				dvt.PIDMove(22);
+
 				dvt.PIDTurn(90);
 				dvt.PIDMove(22);
 				dvt.PIDTurn(90);
 				dvt.PIDMove(47);
 				dvt.PIDTurn(90);
+
 				dvt.moveDelay(400, false);
 				mogoMech.actuate(false);
 				dvt.PIDMove(5);
 				dvt.PIDTurn(90);
-
-
 			}
 
 			void skillsSector2() {
