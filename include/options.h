@@ -11,23 +11,23 @@
 #define CURRENT_OPCONTROL mainControl
 
 // Digital sensor port for pneumatics mogo mech
-#define MOGO_MECH_PORT 'B'
+#define MOGO_MECH_PORT 'A'
 
 // Digital sensor port for pneumatics conveyor lift
-#define LIFT_MECH_PORT 'A'
+#define LIFT_MECH_PORT 'B'
 
-// Motor ports for the conveyer
-#define CONVEYER_PORTS {-16, 10}
+// Motor ports for the conveyer (real is 10 but use 11 to just turn it off for debugging)
+#define CONVEYER_PORTS {10}
 
 // Motor ports for the intake motor group
-#define INTAKE_PORTS {-2, 3}
+#define INTAKE_PORTS {-2}
 
 // Port for the color sensor
 #define COLOR_SENSOR_PORT 5
 
 // Ports for telemetry
 // IMU
-#define IMU_PORT 15
+#define IMU_PORT 21
 // Ultrasound (1st is ping port, 2nd is echo port)
 #define BACK_ULTRA_PORTS {'A', 'B'}
 
@@ -37,8 +37,8 @@
 #define DO_OP_CONTROL true
 
 // Ports for the drivetrain motors
-#define LEFT_DRIVE_PORTS {-13, -18, -14}
-#define RIGHT_DRIVE_PORTS {12, 19, 20}
+#define LEFT_DRIVE_PORTS {6, 7, 8}
+#define RIGHT_DRIVE_PORTS {-17, -13, -16}
 
 // Chassis class to use (default is initDefaultChassis)
 #define INIT_CHASSIS initDefaultChassis

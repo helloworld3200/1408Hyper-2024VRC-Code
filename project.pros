@@ -255,7 +255,8 @@
       }
     },
     "upload_options": {
-      "description": "1408Hyper's source code for the 2024-25 \"High Stakes\" V5RC season."
+      "description": "1408Hyper's source code for the 2024-25 \"High Stakes\" V5RC season.",
+      "icon": "X"
     },
     "use_early_access": false
   }

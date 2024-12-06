@@ -9,12 +9,13 @@
 // ending in -mech classes are for pneumatics
 
 // currently using legacy toggles (not using MechToggle class):
-// mogomech
+// mogomech - maybe try to upgrade to MechToggle?
 
-// TODO: upgrade the following to use BiToggle class:
-// conveyer, intake (needs to be upgraded to use AbstractMG class first)
+// CONSIDER odom?
 
-// TODO: Create drivetrain utility functions e.g. forward, turn degrees, etc.
+// TODO: refactor into separate files
+
+// TODO: take some of the legacy code into a diff file
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
@@ -29,6 +30,9 @@ namespace hyper {
 
 	template <typename T>
 	T normaliseAngle(T angle);
+
+	template <typename T>
+	T naiveNormaliseAngle(T angle);
 
 	// Class declarations
 
@@ -403,6 +407,12 @@ namespace hyper {
 
 			};
 		private:
+			// Coefficients for turning in driver control
+			struct TurnCoefficients {
+				float left;
+				float right;
+			};
+
 			pros::MotorGroup left_mg;
 			pros::MotorGroup right_mg;
 
@@ -418,12 +428,49 @@ namespace hyper {
 		protected:
 		public:
 			/// @brief Struct for different driver control speeds
-			/// @param turnSpeed Speed for turning
-			/// @param forwardBackSpeed Speed for forward/backward
+			/// @param turnSpeed Multiplier for only turning
+			/// @param forwardBackSpeed Multiplier for only forward/backward
+			/// @param arcSpeed Multiplier of opposite turn for when turning and moving laterally at the same time
+			// (higher value means less lateral movement)
 			struct DriveControlSpeed {
-				float turnSpeed = 2;
-				float forwardBackSpeed = 2;
+				private:
+					float forwardBackSpeed;
+					float maxLateral;
+				public:
+					static constexpr float controllerMax = 127;
+
+					float turnSpeed;
+					float arcSpeed;
+
+					/// @brief Sets the forward/backward speed
+					/// @param speed Speed to set the forward/backward speed to
+					// (Also prepares maxLateral for arc movement)
+					void setForwardBackSpeed(float speed, float maxTolerance = 1) {
+						forwardBackSpeed = speed;
+						maxLateral = speed * controllerMax + maxTolerance;
+					}
+
+					/// @brief Gets the forward/backward speed
+					/// @return Forward/backward speed
+					float getForwardBackSpeed() {
+						return forwardBackSpeed;
+					}
+
+					/// @brief Gets the max lateral movement
+					/// @return Max lateral movement
+					float getMaxLateral() {
+						return maxLateral;
+					}
+
+					// lower arc speed is lower turning
+
+					DriveControlSpeed(float turnSpeed = 2, float forwardBackSpeed = 2, float arcSpeed = 0.3) :
+						turnSpeed(turnSpeed), 
+						arcSpeed(arcSpeed) {
+							setForwardBackSpeed(forwardBackSpeed);
+						}
 			};
+
 
 			/// @brief Ports for the drivetrain
 			/// @param leftPorts Vector of ports for left motors
@@ -441,6 +488,14 @@ namespace hyper {
 				DrivetrainPorts ports;
 			};
 
+			/// @brief Struct for PID options (self-explanatory)
+			struct PIDOptions {
+				double kP;
+				double kI;
+				double kD;
+				double errorThreshold;
+			};
+
 			DriveControlSpeed driveControlSpeed = {};
 
 			bool preventBackMove = false;
@@ -454,7 +509,13 @@ namespace hyper {
 			float relativeMovementCoefficient = 14.2857;
 			float voltMovementCoefficient = 1;
 
+			float maxVoltage = 12000;
+
+			double inchesPerTick = 0.025525;
+
 			uint32_t moveDelayMs = 2;
+
+			int pidInvertTurn = 1;
 
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
@@ -464,28 +525,66 @@ namespace hyper {
 					setDriveControlMode();
 					calibrateIMU();
 				};
+		private:
+			void prepareArcadeLateral(float& lateral) {
+				// Change to negative to invert
+				lateral *= -1;
 
+				// Clamp the range to above 0 only to remove back movement
+				if (preventBackMove && (lateral < 0)) {
+					lateral = 0;
+				}
+
+				lateral *= driveControlSpeed.getForwardBackSpeed();
+			}
+
+			// Calculate the movement of the robot when turning and moving laterally at the same time
+			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn, float maxLateralTolerance = 1) {
+				// 0-1 range of percentage of lateral movement against max possible lateral movement
+				float lateralCompensation = lateral / driveControlSpeed.getMaxLateral();
+				// Decrease the turn speed when moving laterally
+				float turnDecrease = turn * driveControlSpeed.arcSpeed * (1 - lateralCompensation);
+
+				if (turn > 0) { // Turning to right so we decrease the left MG
+					turnCoeffs.left -= turnDecrease;
+				} else { // Turning to left so we decrease the right MG
+					turnCoeffs.right -= turnDecrease;
+				}
+
+				pros::lcd::print(4, ("Left Turn Coef: " + std::to_string(turnCoeffs.left)).c_str());
+				pros::lcd::print(5, ("Right Turn Coef: " + std::to_string(turnCoeffs.right)).c_str());
+			}
+
+			TurnCoefficients calculateArcadeTurns(float turn, float lateral) {
+				turn *= 1;
+				turn *= driveControlSpeed.turnSpeed;
+
+				TurnCoefficients turnCoeffs = {turn, turn};
+
+				// Allow for arc movement
+				calculateArcMovement(turnCoeffs, lateral, turn);
+
+				return turnCoeffs;
+			}
+		public:
 			void opControl() override {
 				driveControl();
 			}
 
 			/// @brief Arcade control for drive control (recommended to use opControl instead)
 			void arcadeControl() {
-				float dir = master->get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+				float lateral = master->get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 				float turn = master->get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
 
-				turn *= -1;
+				prepareArcadeLateral(lateral);
 
-				// Clamp the range to above 0 only to remove back movement
-				if (preventBackMove && (dir > 0)) {
-					dir = 0;
-				}
+				TurnCoefficients turnCoeffs = calculateArcadeTurns(turn, lateral);
 
-				dir *= driveControlSpeed.forwardBackSpeed;
-				turn *= driveControlSpeed.turnSpeed;
+				// Ensure voltages are within correct ranges
+				std::int32_t left_voltage = prepareMoveVoltage(lateral - turnCoeffs.left);
+				std::int32_t right_voltage = prepareMoveVoltage(lateral + turnCoeffs.right);
 
-				std::int32_t left_voltage = prepareMoveVoltage(dir - turn);                      // Sets left motor voltage
-				std::int32_t right_voltage = prepareMoveVoltage(dir + turn);                     // Sets right motor voltage
+				//pros::lcd::print(4, ("LEFT/RIGHT: " + std::to_string(master->get_analog(ANALOG_LEFT_Y)) + ", " + std::to_string(master->get_analog(ANALOG_RIGHT_X)))).c_str();
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
@@ -497,8 +596,8 @@ namespace hyper {
 			}
 
 			/// @brief Calibrates the IMU
-			void calibrateIMU() {
-				imu.reset();
+			void calibrateIMU(bool blocking = true) {
+				imu.reset(blocking);
 				imu.tare();
 			}
 
@@ -523,6 +622,8 @@ namespace hyper {
 			void moveVoltage(std::int16_t leftVoltage, std::int16_t rightVoltage) {
 				left_mg.move_voltage(leftVoltage);
 				right_mg.move_voltage(rightVoltage);
+				pros::lcd::print(0, ("Left Voltage: " + std::to_string(leftVoltage)).c_str());
+				pros::lcd::print(1, ("Right Voltage: " + std::to_string(rightVoltage)).c_str());
 			}
 
 			/// @brief Moves the motors at a single voltage
@@ -628,24 +729,154 @@ namespace hyper {
 			/// @param right Whether to move the right motor
 			void moveDelay(std::uint32_t delayMs, bool forward = true) {
 				if (forward) {
-					moveSingleVelocity(defaultMoveVelocity);
-				} else {
 					moveSingleVelocity(-defaultMoveVelocity);
+				} else {
+					moveSingleVelocity(defaultMoveVelocity);
 				}
 
 				pros::delay(delayMs);
 				moveStop();
 			}
 
-			/// @brief PID Turn to specific angle
-			/// @param angle Angle to move to
-			void PIDTurn(double angle) {
-				tareMotors();
+			double getHeading() {
+				return imu.get_heading();
+			}
 
-				
+			// TODO: Generic PID function that we can apply to PIDTurn and PIDMove
+			// maybe make a class for this? if it gets too complicated
+			// but that would also require refactoring Drivetrain to have an AbstractDrivetrain
+			// parent to avoid cyclic dependencies
+
+			// WARNING: do NOT use relativeMovementCoefficient for PID functions
+			// as this does not account for acceleration/deceleration
+			// it's only for simple movement (phased out by PID & PIDOptions struct)
+
+			/// @brief Turn to a specific angle using PID
+			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
+			// TODO: Tuning required
+			void PIDTurn(double angle, PIDOptions options = {
+				0.1, 0.0, 0.0, 1
+			}) {
+				imu.tare();
+				angle = naiveNormaliseAngle(angle);
+
+				angle *= pidInvertTurn;
+
+				angle /= 1;
+
+				bool anglePositive = angle > 0;
+				bool turn180 = false;
+
+				// IMU already tared so we don't need to get the current heading
+				float error = angle;
+				float lastError = 0;
+				float derivative = 0;
+				float integral = 0;
+
+				float out = 0;
+				float trueHeading = 0;
+
+				float maxThreshold = 180 - options.errorThreshold;
+
+				if (std::fabs(angle) >= 180) {
+					turn180 = true;
+				}
+
+				pros::lcd::print(3, "PIDTurn Start");
+
+				// with turning you just wanna move the other MG at negative of the MG of the direction
+				// which u wanna turn to
 
 				while (true) {
+					trueHeading = std::fmod((imu.get_heading() + 180), 360) - 180;
+					error = angle - trueHeading;
 
+					integral += error;
+					// Anti windup
+					if (std::fabs(error) < options.errorThreshold) {
+						integral = 0;
+					}
+
+					derivative = error - lastError;
+					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
+					lastError = error;
+
+					out *= 1000; // convert to mV
+					out = std::clamp(out, -maxVoltage, maxVoltage);
+					moveVoltage(-out, out);
+
+					pros::lcd::print(5, ("PIDTurn Out: " + std::to_string(out)).c_str());
+					pros::lcd::print(7, ("PIDTurn Error: " + std::to_string(error)).c_str());
+					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(imu.get_heading())).c_str());
+
+					if (std::fabs(error) <= options.errorThreshold) {
+						break;
+					}
+
+					// 180 degree turning
+					if (std::fabs(trueHeading) >= maxThreshold) {
+						break;
+					}
+
+					// TODO: refactor checks in prod
+					if (std::fabs(out) < 100) {
+						pros::lcd::print(4, "PIDTurn Out too low");
+					}
+
+					pros::delay(moveDelayMs);
+				}
+
+				moveStop();
+			}
+
+			// think about arc motion, odometry, etc.
+			// the key thing is PID.
+			// TUNING REQUIRED!!!
+
+			/// @brief Move to a specific position using PID
+			/// @param pos Position to move to in inches (use negative for backward)
+			// TODO: Tuning required
+			void PIDMove(double pos, PIDOptions options = {
+				0.085, 0.0, 0.0, 5
+			}) {
+				// TODO: Consider adding odometry wheels as the current motor encoders
+				// can be unreliable for long distances
+				tareMotors();
+
+				pos /= inchesPerTick;
+				pos *= -1;
+
+				float error = pos;
+				float lastError = 0;
+				float derivative = 0;
+				float integral = 0;
+				float out = 0;
+
+				// with moving you just wanna move both MGs at the same speed
+
+				while (true) {
+					// get avg error
+					error = pos - (left_mg.get_position() + right_mg.get_position()) / 2;
+
+					integral += error;
+					// Anti windup
+					if (std::fabs(error) < options.errorThreshold) {
+						integral = 0;
+					}
+
+					derivative = error - lastError;
+					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
+					lastError = error;
+
+					out *= 1000; // convert to mV
+					out = std::clamp(out, -maxVoltage, maxVoltage);
+					moveSingleVoltage(out);
+
+					if (std::fabs(error) <= options.errorThreshold) {
+						break;
+					}
+
+					pros::delay(moveDelayMs);
 				}
 
 				moveStop();
@@ -786,7 +1017,10 @@ namespace hyper {
 
 				bool moveConveyer = (mogoMechMoving && on) || (liftMechMoving && on);
 
-				return moveConveyer;
+				// DISABLE THIS FOR NOW BECAUSE WE DONT HAVE A LIFT MECH
+				//return moveConveyer;
+
+				return on;
 			}
 
 			void opControl() override {
@@ -995,26 +1229,78 @@ namespace hyper {
 			}
 
 			void linedAuton() {
-				dvt.moveRelPos(10);
+				dvt.PIDMove(14);
+				dvt.PIDTurn(-45);
+				dvt.moveDelay(500);
 			}
 			
 			void calcCoefficientAuton()  {
-				dvt.moveRelPos(100);
+				dvt.PIDMove(96);
+			}
+
+			void testIMUAuton() {
+				dvt.moveVelocity(500, -500);
+				pros::lcd::set_text(5, std::to_string(dvt.getHeading()));
+				pros::delay(10);
+			}
+
+			void calcTurnAuton() {
+				dvt.PIDTurn(-180);
+			}
+
+			void advancedAuton() {
+				// Deposit preload on low wall stake
+				dvt.PIDMove(5);
+				pros::lcd::print(2, "Initial phase complete");
+				//conveyer.move(true);
+
+				// Move to mogo
+				// CURSED LINE!!!!
+				//dvt.PIDTurn(-30);
+
+				dvt.PIDTurn(-30);
+				dvt.PIDMove(-19);
+				dvt.PIDTurn(179);
+				dvt.PIDMove(43);
+
+				// Collect mogo
+				mogoMech.actuate(true);
+				dvt.PIDMove(19);
+				mogoMech.actuate(false);
+
+				// Collect rings
+				dvt.PIDTurn(-70);
+				intake.move(true);
+				dvt.PIDMove(27);
+				pros::delay(500);
+				intake.move(false);
+
+				// Prepare for opcontrol
+				//conveyer.move(false);
 			}
 
 			void skillsSector1() {
-				mogoMech.actuate(false);
-				dvt.moveDelay(300, false);
+				mogoMech.actuate(false);	
+				dvt.PIDMove(-9);
 				mogoMech.actuate(true);
-				dvt.turnDelay(false, 600);
-				intake.move(true);
 				conveyer.move(true);
 
-				dvt.moveRelPos(90);
-				dvt.turnDelay(false, 400);
-				dvt.moveDelay(300, false);
+				dvt.PIDTurn(-30);
+				dvt.moveDelay(300);
+				dvt.PIDMove(6);
+				dvt.PIDTurn(180);
+				dvt.PIDMove(22);
 
+				dvt.PIDTurn(90);
+				dvt.PIDMove(22);
+				dvt.PIDTurn(90);
+				dvt.PIDMove(47);
+				dvt.PIDTurn(90);
+
+				dvt.moveDelay(400, false);
 				mogoMech.actuate(false);
+				dvt.PIDMove(5);
+				dvt.PIDTurn(90);
 			}
 
 			void skillsSector2() {
@@ -1083,7 +1369,10 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				//calcCoefficientAuton();
-				linedAuton();
+				//calcTurnAuton();
+				//testIMUAuton();
+				//linedAuton();
+				advancedAuton();
 			}
 
 			void skills() override {
@@ -1162,6 +1451,17 @@ namespace hyper {
 		} else if (angle < -180) {
 			angle += 360;
 		}
+
+		return angle;
+	}
+
+	/// @brief Naively normalise an angle to the range [-180, 180] by simply clamping the value
+	/// @param angle Angle to normalise
+	template <typename T>
+	T naiveNormaliseAngle(T angle) {
+		assertArithmetic(angle);
+
+		angle = std::clamp(angle, -180.0, 180.0);
 
 		return angle;
 	}
@@ -1313,4 +1613,4 @@ void opcontrol() {
 // i like c++ the most
 
 // anti quick make nothing comment thingy
-// a
+// aa
