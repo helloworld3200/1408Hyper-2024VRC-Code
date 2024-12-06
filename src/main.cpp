@@ -1319,9 +1319,9 @@ namespace hyper {
 			LiftMech liftMech;
 
 			Conveyer conveyer;
-			/*Intake intake;
+			Intake intake;
 
-			ColorStopper colstop;
+			/*ColorStopper colstop;
 			UltraStopper ultraStopper;*/
 
 			/// @brief Creates chassis object
@@ -1330,8 +1330,8 @@ namespace hyper {
 				dvt({this, args.dvtPorts}),
 				mogoMech({this, args.mogoMechPort}), 
 				liftMech({this, args.liftMechPort}), 
-				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}})/*, 
-				intake({this, args.intakePorts}),
+				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
+				intake({this, args.intakePorts})/*,
 				colstop({this, args.colorSensorPort, &conveyer, &liftMech})
 				ultraStopper({this, args.backUltraPorts, &dvt})*/ {};
 
@@ -1347,7 +1347,7 @@ namespace hyper {
 
 				// Motor groups
 				conveyer.opControl();
-				//intake.opControl();
+				intake.opControl();
 
 				// Misc (eg color sensor)
 				/*colstop.opControl();

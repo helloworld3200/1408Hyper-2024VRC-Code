@@ -17,10 +17,10 @@
 #define LIFT_MECH_PORT 'B'
 
 // Motor ports for the conveyer (real is 10 but use 11 to just turn it off for debugging)
-#define CONVEYER_PORTS {11}
+#define CONVEYER_PORTS {10}
 
 // Motor ports for the intake motor group
-#define INTAKE_PORTS {-2, 3}
+#define INTAKE_PORTS {2}
 
 // Port for the color sensor
 #define COLOR_SENSOR_PORT 5
