@@ -66,6 +66,8 @@
 // Antitheft measure
 #include "antitheft.h"
 
+// TODO: Refactor our code into different files--main.cpp is getting too big
+
 // Using declarations
 using std::vector;
 using std::string;

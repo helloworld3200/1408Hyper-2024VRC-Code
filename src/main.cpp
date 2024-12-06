@@ -11,8 +11,11 @@
 // currently using legacy toggles (not using MechToggle class):
 // mogomech - maybe try to upgrade to MechToggle?
 
-// TODO: Create drivetrain utility functions e.g. forward, turn degrees, etc.
-// (with PID!!!! SPECIFICALLY turning and lateral)
+// CONSIDER odom?
+
+// TODO: refactor into separate files
+
+// TODO: take some of the legacy code into a diff file
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
