@@ -512,6 +512,8 @@ namespace hyper {
 
 			uint32_t moveDelayMs = 2;
 
+			int pidInvertTurn = 1;
+
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
@@ -579,6 +581,8 @@ namespace hyper {
 				std::int32_t left_voltage = prepareMoveVoltage(lateral - turnCoeffs.left);
 				std::int32_t right_voltage = prepareMoveVoltage(lateral + turnCoeffs.right);
 
+				//pros::lcd::print(4, ("LEFT/RIGHT: " + std::to_string(master->get_analog(ANALOG_LEFT_Y)) + ", " + std::to_string(master->get_analog(ANALOG_RIGHT_X)))).c_str();
+
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
 			}
@@ -589,8 +593,8 @@ namespace hyper {
 			}
 
 			/// @brief Calibrates the IMU
-			void calibrateIMU() {
-				imu.reset();
+			void calibrateIMU(bool blocking = true) {
+				imu.reset(blocking);
 				imu.tare();
 			}
 
@@ -615,6 +619,8 @@ namespace hyper {
 			void moveVoltage(std::int16_t leftVoltage, std::int16_t rightVoltage) {
 				left_mg.move_voltage(leftVoltage);
 				right_mg.move_voltage(rightVoltage);
+				pros::lcd::print(0, ("Left Voltage: " + std::to_string(leftVoltage)).c_str());
+				pros::lcd::print(1, ("Right Voltage: " + std::to_string(rightVoltage)).c_str());
 			}
 
 			/// @brief Moves the motors at a single voltage
@@ -720,13 +726,17 @@ namespace hyper {
 			/// @param right Whether to move the right motor
 			void moveDelay(std::uint32_t delayMs, bool forward = true) {
 				if (forward) {
-					moveSingleVelocity(defaultMoveVelocity);
-				} else {
 					moveSingleVelocity(-defaultMoveVelocity);
+				} else {
+					moveSingleVelocity(defaultMoveVelocity);
 				}
 
 				pros::delay(delayMs);
 				moveStop();
+			}
+
+			double getHeading() {
+				return imu.get_heading();
 			}
 
 			// TODO: Generic PID function that we can apply to PIDTurn and PIDMove
@@ -747,6 +757,13 @@ namespace hyper {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
 
+				angle *= pidInvertTurn;
+
+				angle /= 1;
+
+				bool anglePositive = angle > 0;
+				bool turn180 = false;
+
 				// IMU already tared so we don't need to get the current heading
 				float error = angle;
 				float lastError = 0;
@@ -756,12 +773,20 @@ namespace hyper {
 				float out = 0;
 				float trueHeading = 0;
 
+				float maxThreshold = 180 - options.errorThreshold;
+
+				if (std::fabs(angle) >= 180) {
+					turn180 = true;
+				}
+
+				pros::lcd::print(3, "PIDTurn Start");
+
 				// with turning you just wanna move the other MG at negative of the MG of the direction
 				// which u wanna turn to
 
 				while (true) {
-					trueHeading = imu.get_heading() - 180;
-					error = naiveNormaliseAngle(angle - trueHeading);
+					trueHeading = std::fmod((imu.get_heading() + 180), 360) - 180;
+					error = angle - trueHeading;
 
 					integral += error;
 					// Anti windup
@@ -774,14 +799,25 @@ namespace hyper {
 					lastError = error;
 
 					out *= 1000; // convert to mV
-					out = std::clamp(out, -1000.0f, 1000.0f);
-					moveVoltage(out, -out);
+					out = std::clamp(out, -maxVoltage, maxVoltage);
+					moveVoltage(-out, out);
 
+					pros::lcd::print(5, ("PIDTurn Out: " + std::to_string(out)).c_str());
 					pros::lcd::print(7, ("PIDTurn Error: " + std::to_string(error)).c_str());
-					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(trueHeading)).c_str());
+					pros::lcd::print(6, ("PIDTurn True Heading: " + std::to_string(imu.get_heading())).c_str());
 
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
+					}
+
+					// 180 degree turning
+					if (std::fabs(trueHeading) >= maxThreshold) {
+						break;
+					}
+
+					// TODO: refactor checks in prod
+					if (std::fabs(out) < 100) {
+						pros::lcd::print(4, "PIDTurn Out too low");
 					}
 
 					pros::delay(moveDelayMs);
@@ -805,6 +841,7 @@ namespace hyper {
 				tareMotors();
 
 				pos /= inchesPerTick;
+				pos *= -1;
 
 				float error = pos;
 				float lastError = 0;
@@ -977,7 +1014,10 @@ namespace hyper {
 
 				bool moveConveyer = (mogoMechMoving && on) || (liftMechMoving && on);
 
-				return moveConveyer;
+				// DISABLE THIS FOR NOW BECAUSE WE DONT HAVE A LIFT MECH
+				//return moveConveyer;
+
+				return on;
 			}
 
 			void opControl() override {
@@ -1186,30 +1226,78 @@ namespace hyper {
 			}
 
 			void linedAuton() {
-				dvt.moveRelPos(10);
+				dvt.PIDMove(14);
+				dvt.PIDTurn(-45);
+				dvt.moveDelay(500);
 			}
 			
 			void calcCoefficientAuton()  {
-				dvt.PIDMove(80);
+				dvt.PIDMove(96);
+			}
+
+			void testIMUAuton() {
+				dvt.moveVelocity(500, -500);
+				pros::lcd::set_text(5, std::to_string(dvt.getHeading()));
+				pros::delay(10);
 			}
 
 			void calcTurnAuton() {
-				dvt.PIDTurn(90);
+				dvt.PIDTurn(-180);
+			}
+
+			void advancedAuton() {
+				// Deposit preload on low wall stake
+				dvt.PIDMove(5);
+				pros::lcd::print(2, "Initial phase complete");
+				//conveyer.move(true);
+
+				// Move to mogo
+				// CURSED LINE!!!!
+				//dvt.PIDTurn(-30);
+
+				dvt.PIDTurn(-30);
+				dvt.PIDMove(-19);
+				dvt.PIDTurn(179);
+				dvt.PIDMove(43);
+
+				// Collect mogo
+				mogoMech.actuate(true);
+				dvt.PIDMove(19);
+				mogoMech.actuate(false);
+
+				// Collect rings
+				dvt.PIDTurn(-70);
+				intake.move(true);
+				dvt.PIDMove(27);
+				pros::delay(500);
+				intake.move(false);
+
+				// Prepare for opcontrol
+				//conveyer.move(false);
 			}
 
 			void skillsSector1() {
-				mogoMech.actuate(false);
-				dvt.moveDelay(300, false);
+				mogoMech.actuate(false);	
+				dvt.PIDMove(-9);
 				mogoMech.actuate(true);
-				dvt.turnDelay(false, 600);
-				intake.move(true);
 				conveyer.move(true);
 
-				dvt.moveRelPos(90);
-				dvt.turnDelay(false, 400);
-				dvt.moveDelay(300, false);
+				dvt.PIDTurn(-30);
+				dvt.moveDelay(300);
+				dvt.PIDMove(6);
+				dvt.PIDTurn(180);
+				dvt.PIDMove(22);
 
+				dvt.PIDTurn(90);
+				dvt.PIDMove(22);
+				dvt.PIDTurn(90);
+				dvt.PIDMove(47);
+				dvt.PIDTurn(90);
+
+				dvt.moveDelay(400, false);
 				mogoMech.actuate(false);
+				dvt.PIDMove(5);
+				dvt.PIDTurn(90);
 			}
 
 			void skillsSector2() {
@@ -1278,8 +1366,10 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				//calcCoefficientAuton();
-				calcTurnAuton();
+				//calcTurnAuton();
+				//testIMUAuton();
 				//linedAuton();
+				advancedAuton();
 			}
 
 			void skills() override {

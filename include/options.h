@@ -6,21 +6,21 @@
 // Variables (u can change these!!)
 #define MAINLOOP_DELAY_TIME_MS 20
 // Turn on for match auton to be run at the start of opcontrol
-#define MATCH_AUTON_TEST true
+#define MATCH_AUTON_TEST false
 
 #define CURRENT_OPCONTROL mainControl
 
 // Digital sensor port for pneumatics mogo mech
-#define MOGO_MECH_PORT 'B'
+#define MOGO_MECH_PORT 'A'
 
 // Digital sensor port for pneumatics conveyor lift
-#define LIFT_MECH_PORT 'A'
+#define LIFT_MECH_PORT 'B'
 
-// Motor ports for the conveyer
-#define CONVEYER_PORTS {-16, 10}
+// Motor ports for the conveyer (real is 10 but use 11 to just turn it off for debugging)
+#define CONVEYER_PORTS {10}
 
 // Motor ports for the intake motor group
-#define INTAKE_PORTS {-2, 3}
+#define INTAKE_PORTS {2}
 
 // Port for the color sensor
 #define COLOR_SENSOR_PORT 5
