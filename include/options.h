@@ -20,7 +20,7 @@
 #define CONVEYER_PORTS {10}
 
 // Motor ports for the intake motor group
-#define INTAKE_PORTS {2}
+#define INTAKE_PORTS {-2}
 
 // Port for the color sensor
 #define COLOR_SENSOR_PORT 5
