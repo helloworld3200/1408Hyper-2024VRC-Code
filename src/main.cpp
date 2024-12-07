@@ -464,7 +464,7 @@ namespace hyper {
 
 					// lower arc speed is lower turning
 
-					DriveControlSpeed(float turnSpeed = 2, float forwardBackSpeed = 2, float arcSpeed = 0.3) :
+					DriveControlSpeed(float turnSpeed = 1, float forwardBackSpeed = 2, float arcSpeed = 0.3) :
 						turnSpeed(turnSpeed), 
 						arcSpeed(arcSpeed) {
 							setForwardBackSpeed(forwardBackSpeed);
