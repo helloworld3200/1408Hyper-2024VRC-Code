@@ -941,10 +941,10 @@ namespace hyper {
 
 					if (engaged) {
 						actuate(false);
-						master->print(0, 0, "Mogo engaged: NO");
+						master->print(0, 0, "Mogo engaged: YES");
 					} else {
 						actuate(true);
-						master->print(0, 0, "Mogo engaged: YES");
+						master->print(0, 0, "Mogo engaged: NO");
 					}
 				}
 			}
