@@ -941,8 +941,10 @@ namespace hyper {
 
 					if (engaged) {
 						actuate(false);
+						master->print(0, 0, "Mogo engaged: NO");
 					} else {
 						actuate(true);
+						master->print(0, 0, "Mogo engaged: YES");
 					}
 				}
 			}
@@ -1008,7 +1010,7 @@ namespace hyper {
 					pros::E_CONTROLLER_DIGITAL_R2,
 					pros::E_CONTROLLER_DIGITAL_R1
 				}}) {
-					speeds = {250, -250};
+					speeds = {10000, -10000};
 				};
 
 			bool canMove(bool on) override {
@@ -1229,7 +1231,7 @@ namespace hyper {
 			}
 
 			void linedAuton() {
-				dvt.PIDMove(14);
+				dvt.PIDMove(30);
 				dvt.PIDTurn(-45);
 				dvt.moveDelay(500);
 			}
