@@ -1371,8 +1371,8 @@ namespace hyper {
 				//calcCoefficientAuton();
 				//calcTurnAuton();
 				//testIMUAuton();
-				//linedAuton();
-				advancedAuton();
+				linedAuton();
+				//advancedAuton();
 			}
 
 			void skills() override {
