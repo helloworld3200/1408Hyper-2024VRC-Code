@@ -755,7 +755,7 @@ namespace hyper {
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			// TODO: Tuning required
 			void PIDTurn(double angle, PIDOptions options = {
-				0.1, 0.0, 0.0, 1
+				0.3, 0.0, 0.7, 1
 			}) {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
@@ -801,7 +801,7 @@ namespace hyper {
 					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
 					lastError = error;
 
-					out *= 5000; // convert to mV
+					out *= 1000; // convert to mV
 					out = std::clamp(out, -maxVoltage, maxVoltage);
 					moveVoltage(-out, out);
 
@@ -894,43 +894,6 @@ namespace hyper {
 			}		
 	}; // class Drivetrain
 
-	class LiftMech : public AbstractMech {
-		private:
-		protected:
-		public:
-			/// @brief Args for mogo mech object
-			/// @param abstractMechArgs Args for AbstractMech object
-			struct LiftMechArgs {
-				AbstractMechArgs abstractMechArgs;
-			};
-
-			/// @brief Struct for buttons for lift mech object
-			/// @param on Button to turn on lift mech
-			/// @param off Button to turn off lift mech
-			struct Buttons {
-				pros::controller_digital_e_t on = pros::E_CONTROLLER_DIGITAL_UP;
-				pros::controller_digital_e_t off = pros::E_CONTROLLER_DIGITAL_DOWN;
-			};
-
-			Buttons btns = {};
-
-			/// @brief Creates mogo mech object
-			/// @param args Args for MogoMech object (check args struct for more info)
-			LiftMech(LiftMechArgs args) : 
-				AbstractMech(args.abstractMechArgs) {};
-
-			/// @brief Runs every loop to check if the button has been pressed
-			void opControl () override {
-				// Perform the actuation if this is the button has JUST been pressed
-				if (master->get_digital(btns.on)) {
-					actuate(true);
-					//pros::lcd::set_text(1, "L1 pressed");
-				} else if (master->get_digital(btns.off)) {
-					actuate(false);
-				}
-			}
-	}; // class LiftMech
-
 	class MogoMech : public AbstractMech {
 		private:
 			bool lastPressed = false;
@@ -980,17 +943,7 @@ namespace hyper {
 	}; // class MogoMech
 
 	class Conveyer : public AbstractMG {
-		public:
-			/// @brief Args for pointers required for conveyer object
-			/// @param mogoMech Pointer to mogo mech object
-			/// @param liftMech Pointer to lift mech object
-			struct ReqPointers {
-				MogoMech* mogoMech;
-				LiftMech* liftMech;
-			};
-
 		private:
-			ReqPointers reqPointers;
 		protected:
 		public:
 			BiToggle toggle;
@@ -1001,12 +954,10 @@ namespace hyper {
 			/// @param mogoMech Pointer to mogo mech object
 			struct ConveyerArgs {
 				AbstractMGArgs abstractMGArgs;
-				ReqPointers reqPointers;
 			};
 
 			Conveyer(ConveyerArgs args) :
 				AbstractMG(args.abstractMGArgs), 
-				reqPointers(args.reqPointers),
 				toggle({this, {
 					pros::E_CONTROLLER_DIGITAL_R2,
 					pros::E_CONTROLLER_DIGITAL_R1
@@ -1015,13 +966,14 @@ namespace hyper {
 				};
 
 			bool canMove(bool on) override {
+				/* Dont need this for now because lift mech doesn't exist
 				bool mogoMechMoving = reqPointers.mogoMech->getEngaged();
 				bool liftMechMoving = reqPointers.liftMech->getEngaged();
 
 				bool moveConveyer = (mogoMechMoving && on) || (liftMechMoving && on);
 
 				// DISABLE THIS FOR NOW BECAUSE WE DONT HAVE A LIFT MECH
-				//return moveConveyer;
+				return moveConveyer;*/
 
 				return on;
 			}
@@ -1068,115 +1020,6 @@ namespace hyper {
 				toggle.opControl();
 			}
 	}; // class Intake
-
-	/// @brief Class for controlling the stopper based on the color sensor
-	class ColorStopper : public AbstractComponent {
-		private:
-			Conveyer* conveyer;
-			LiftMech* liftMech;
-
-			pros::Optical colorSensor;
-
-			bool doStop = false;
-		protected:
-		public:
-			/// @brief Args for color stopper object
-			/// @param abstractComponentArgs Args for AbstractComponent object
-			struct ColorStopperArgs {
-				AbstractComponentArgs abstractComponentArgs;
-				std::int8_t colorSensorPort;
-				Conveyer* conveyer;
-				LiftMech* liftMech;
-			};
-
-			struct ColorThresholds {
-				float lower;
-				float upper;
-			};
-
-			vector<ColorThresholds> blue = {{0, 30}, {330, 360}};
-			vector<ColorThresholds> red = {{180, 240}};
-
-			pros::controller_digital_e_t btn = pros::E_CONTROLLER_DIGITAL_Y;
-
-			/// @brief Creates color stopper object
-			/// @param args Args for color stopper object (check args struct for more info)
-			ColorStopper(ColorStopperArgs args) : 
-				AbstractComponent(args.abstractComponentArgs),
-				colorSensor(args.colorSensorPort),
-				conveyer(args.conveyer),
-				liftMech(args.liftMech) {};
-
-			bool isColor(vector<ColorThresholds>& thresholds) {
-				for (ColorThresholds threshold : thresholds) {
-					float reading = colorSensor.get_hue();
-					if (isNumBetween(reading, threshold.lower, threshold.upper)) {
-						return true;
-					}
-				}
-
-				return false;
-			}
-
-			void checkStopColor(vector<ColorThresholds>& thresholds) {
-				if (isColor(thresholds)) {
-					conveyer->move(false);
-					liftMech->actuate(true);
-					conveyer->toggle.setState(BiToggle::State::OFF);
-					doStop = false;
-				}
-			}
-
-			/// @brief Runs every loop to check if the button has been pressed
-			void opControl() override {
-				if (master->get_digital(btn)) {
-					doStop = true;
-				}
-
-				if (doStop) {
-					checkStopColor(blue);
-					checkStopColor(red);
-				}
-			}
-	};
-
-	/// @brief Class for stopping based on the ultrasonic sensor
-	class UltraStopper : public AbstractComponent {
-		private:
-		protected:
-		public:
-			/// @brief Args for ultra stopper object
-			/// @param abstractComponentArgs Args for AbstractComponent object
-			/// @param backUltraPorts Vector of ports for back ultra sensor
-			struct UltraStopperArgs {
-				AbstractComponentArgs abstractComponentArgs;
-				vector<char> backUltraPorts;
-				Drivetrain* dvt;
-			};
-
-			Drivetrain* dvt;
-
-			pros::adi::Ultrasonic ultra;
-
-			float threshold = 10;
-
-			/// @brief Creates ultra stopper object
-			/// @param args Args for ultra stopper object (check args struct for more info)
-			UltraStopper(UltraStopperArgs args) : 
-				AbstractComponent(args.abstractComponentArgs),
-				ultra(args.backUltraPorts[0], args.backUltraPorts[1]),
-				dvt(args.dvt) {};
-
-			void opControl() override {
-				float distance = ultra.get_value();
-
-				if (distance <= threshold) {
-					dvt->preventBackMove = true;
-				} else {
-					dvt->preventBackMove = false;
-				}
-			}
-	};
 
 	/// @brief Chassis class for controlling auton/driver control
 	class Chassis : public AbstractChassis {
@@ -1248,7 +1091,7 @@ namespace hyper {
 			}
 
 			void calcTurnAuton() {
-				dvt.PIDTurn(-30);
+				dvt.PIDTurn(-90);
 			}
 
 			void advancedAuton() {
@@ -1314,12 +1157,10 @@ namespace hyper {
 			/// @brief Args for chassis object
 			/// @param dvtArgs Args for drivetrain object
 			/// @param mogoMechPort Port for mogo mech
-			/// @param liftMechPort Port for lift mech
 			/// @param conveyerPorts Vector of ports for conveyer motors
 			struct ChassisArgs {
 				Drivetrain::DrivetrainPorts dvtPorts;
 				char mogoMechPort;
-				char liftMechPort;
 				vector<std::int8_t> conveyerPorts;
 				vector<std::int8_t> intakePorts;
 				std::int8_t colorSensorPort;
@@ -1329,50 +1170,36 @@ namespace hyper {
 			Drivetrain dvt;
 
 			MogoMech mogoMech;
-			LiftMech liftMech;
 
 			Conveyer conveyer;
 			Intake intake;
 
-			/*ColorStopper colstop;
-			UltraStopper ultraStopper;*/
+			AbstractComponent* components[4] = {
+				&dvt, &mogoMech, &conveyer
+			};
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) :  
 				dvt({this, args.dvtPorts}),
-				mogoMech({this, args.mogoMechPort}), 
-				liftMech({this, args.liftMechPort}), 
-				conveyer({{this, args.conveyerPorts}, {&mogoMech, &liftMech}}), 
-				intake({this, args.intakePorts})/*,
-				colstop({this, args.colorSensorPort, &conveyer, &liftMech})
-				ultraStopper({this, args.backUltraPorts, &dvt})*/ {};
+				mogoMech({this, args.mogoMechPort}),
+				conveyer({this, args.conveyerPorts}), 
+				intake({this, args.intakePorts}) {};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
 			void opControl() override {
-				dvt.opControl();
-				
-				// Run the mainloop for additional components
-				// Pneumatics
-				mogoMech.opControl();
-				liftMech.opControl();
-
-				// Motor groups
-				conveyer.opControl();
-				intake.opControl();
-
-				// Misc (eg color sensor)
-				/*colstop.opControl();
-				ultraStopper.opControl();*/
+				for (AbstractComponent* component : components) {
+					component->opControl();
+				}
 			}
 
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
 				//defaultAuton();
-				//calcCoefficientAuton();
-				calcTurnAuton();
+				calcCoefficientAuton();
+				//calcTurnAuton();
 				//testIMUAuton();
 				//linedAuton();
 				//advancedAuton();
@@ -1485,7 +1312,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-	MOGO_MECH_PORT, LIFT_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, 
+	MOGO_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, 
 	COLOR_SENSOR_PORT, BACK_ULTRA_PORTS});
 	
 	currentChassis = &defaultChassis;
