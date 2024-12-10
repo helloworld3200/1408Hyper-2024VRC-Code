@@ -801,7 +801,7 @@ namespace hyper {
 					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
 					lastError = error;
 
-					out *= 1000; // convert to mV
+					out *= 5000; // convert to mV
 					out = std::clamp(out, -maxVoltage, maxVoltage);
 					moveVoltage(-out, out);
 
@@ -826,6 +826,7 @@ namespace hyper {
 					pros::delay(moveDelayMs);
 				}
 
+				pros::lcd::print(2, "PIDTurn End");
 				moveStop();
 			}
 
@@ -1247,7 +1248,7 @@ namespace hyper {
 			}
 
 			void calcTurnAuton() {
-				dvt.PIDTurn(-180);
+				dvt.PIDTurn(-30);
 			}
 
 			void advancedAuton() {
@@ -1371,9 +1372,9 @@ namespace hyper {
 			void auton() override {
 				//defaultAuton();
 				//calcCoefficientAuton();
-				//calcTurnAuton();
+				calcTurnAuton();
 				//testIMUAuton();
-				linedAuton();
+				//linedAuton();
 				//advancedAuton();
 			}
 
