@@ -38,3 +38,4 @@ To run Make, first install [ARM G++](https://developer.arm.com/downloads/-/arm-g
 - **Main file** at `src/main.cpp`.
 - **Includes** in `include/main.h`.
 - **Options _(e.g. motor ports)_** in `include/options.h`
+- **Legacy/unused code _(e.g. old LiftMech)_** in `legacy/` directory
