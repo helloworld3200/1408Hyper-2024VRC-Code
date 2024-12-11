@@ -838,7 +838,7 @@ namespace hyper {
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
-				0.07, 0.0, 0.4, 5
+				0.07, 0.0, 0.4, 3
 			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances or just dont tare the motors
@@ -1090,7 +1090,7 @@ namespace hyper {
 				// 1 tile = 2 feet = 24 inches
 				// 72 = 3 tiles = 3 feet
 				// 96 = 4 tiles = 4 feet
-				dvt.PIDMove(72);
+				dvt.PIDMove(-24);
 			}
 
 			void testIMUAuton() {
@@ -1113,15 +1113,20 @@ namespace hyper {
 				// CURSED LINE!!!!
 				//dvt.PIDTurn(-30);
 
-				dvt.PIDTurn(-30);
+				dvt.PIDTurn(-50);
 				
-				dvt.PIDMove(-19);
+				dvt.moveDelay(1000, false);
+
+				dvt.PIDTurn(30);
 				
-				dvt.PIDTurn(179);
-				dvt.PIDMove(43);
+				// Turn halfway through going to mogo
+				dvt.PIDTurn(23);
+				dvt.PIDTurn(180);
+				dvt.PIDMove(20);
 
 				// Collect mogo
 				mogoMech.actuate(true);
+				return;
 				dvt.PIDMove(19);
 				mogoMech.actuate(false);
 
