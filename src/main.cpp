@@ -464,7 +464,7 @@ namespace hyper {
 
 					// lower arc speed is lower turning
 
-					DriveControlSpeed(float turnSpeed = 1, float forwardBackSpeed = 2, float arcSpeed = 0.3) :
+					DriveControlSpeed(float turnSpeed = 1, float forwardBackSpeed = 2, float arcSpeed = 0.8) :
 						turnSpeed(turnSpeed), 
 						arcSpeed(arcSpeed) {
 							setForwardBackSpeed(forwardBackSpeed);
@@ -838,16 +838,17 @@ namespace hyper {
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
-				0.085, 0.0, 0.0, 5
+				0.07, 0.0, 0.4, 5
 			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
-				// can be unreliable for long distances
+				// can be unreliable for long distances or just dont tare the motors
 				tareMotors();
 
 				pos /= inchesPerTick;
 				pos *= -1;
 
 				float error = pos;
+				float motorPos = 0;
 				float lastError = 0;
 				float derivative = 0;
 				float integral = 0;
@@ -857,7 +858,8 @@ namespace hyper {
 
 				while (true) {
 					// get avg error
-					error = pos - (left_mg.get_position() + right_mg.get_position()) / 2;
+					motorPos = (left_mg.get_position() + right_mg.get_position()) / 2;
+					error = pos - motorPos;
 
 					integral += error;
 					// Anti windup
@@ -876,6 +878,10 @@ namespace hyper {
 					if (std::fabs(error) <= options.errorThreshold) {
 						break;
 					}
+
+					pros::lcd::print(4, ("PIDMove Motor Pos: " + std::to_string(motorPos)).c_str());
+					pros::lcd::print(5, ("PIDMove Out: " + std::to_string(out)).c_str());
+					pros::lcd::print(7, ("PIDMove Error: " + std::to_string(error)).c_str());
 
 					pros::delay(moveDelayMs);
 				}
@@ -1081,7 +1087,10 @@ namespace hyper {
 			}
 			
 			void calcCoefficientAuton()  {
-				dvt.PIDMove(96);
+				// 1 tile = 2 feet = 24 inches
+				// 72 = 3 tiles = 3 feet
+				// 96 = 4 tiles = 4 feet
+				dvt.PIDMove(72);
 			}
 
 			void testIMUAuton() {
@@ -1105,7 +1114,9 @@ namespace hyper {
 				//dvt.PIDTurn(-30);
 
 				dvt.PIDTurn(-30);
+				
 				dvt.PIDMove(-19);
+				
 				dvt.PIDTurn(179);
 				dvt.PIDMove(43);
 
@@ -1174,9 +1185,7 @@ namespace hyper {
 			Conveyer conveyer;
 			Intake intake;
 
-			AbstractComponent* components[4] = {
-				&dvt, &mogoMech, &conveyer
-			};
+			vector<AbstractComponent*> components;
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
@@ -1184,7 +1193,9 @@ namespace hyper {
 				dvt({this, args.dvtPorts}),
 				mogoMech({this, args.mogoMechPort}),
 				conveyer({this, args.conveyerPorts}), 
-				intake({this, args.intakePorts}) {};
+				intake({this, args.intakePorts}) {
+					components = {&dvt, &mogoMech, &conveyer, &intake};
+				};
 
 			/// @brief Runs the default drive mode specified in opControlMode 
 			/// (recommended to be used instead of directly calling the control functions)
@@ -1198,11 +1209,11 @@ namespace hyper {
 			// 1000 = 70cm
 			void auton() override {
 				//defaultAuton();
-				calcCoefficientAuton();
+				//calcCoefficientAuton();
 				//calcTurnAuton();
 				//testIMUAuton();
 				//linedAuton();
-				//advancedAuton();
+				advancedAuton();
 			}
 
 			void skills() override {
