@@ -72,6 +72,9 @@
 using std::vector;
 using std::string;
 
+using std::unique_ptr;
+using std::shared_ptr;
+
 // Shorthands for port types & other type aliases
 using MGPorts = vector<std::int8_t>;
 using AnalogPort = char;

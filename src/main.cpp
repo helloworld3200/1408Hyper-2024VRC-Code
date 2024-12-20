@@ -13,6 +13,10 @@
 
 // CONSIDER odom?
 
+// WARNING: do NOT just put "Args" as the name of an args struct in any class
+// instead, put the class name in front of it (e.g. DrivetrainArgs) for CLARITY
+// in derived functions & then for factories just do using e.g. using ArgsType = DrivetrainArgs;
+
 // TODO: refactor into separate files
 
 // TODO: take some of the legacy code into a diff file
@@ -488,6 +492,8 @@ namespace hyper {
 				DrivetrainPorts ports;
 			};
 
+			using ArgsType = DrivetrainArgs;
+
 			/// @brief Struct for PID options (self-explanatory)
 			struct PIDOptions {
 				double kP;
@@ -928,6 +934,8 @@ namespace hyper {
 				AbstractMechArgs abstractMechArgs;
 			};
 
+			using ArgsType = MogoMechArgs;
+
 			/// @brief Creates mogo mech object
 			/// @param args Args for MogoMech object (check args struct for more info)
 			MogoMech(MogoMechArgs args) : 
@@ -961,6 +969,8 @@ namespace hyper {
 			struct ConveyerArgs {
 				AbstractMGArgs abstractMGArgs;
 			};
+
+			using ArgsType = ConveyerArgs;
 
 			Conveyer(ConveyerArgs args) :
 				AbstractMG(args.abstractMGArgs), 
@@ -1002,6 +1012,8 @@ namespace hyper {
 				vector<std::int8_t> intakePorts;
 			};
 
+			using ArgsType = IntakeArgs;
+
 			struct Speeds {
 				int fwd = 1000;
 				int back = -1000;
@@ -1027,11 +1039,45 @@ namespace hyper {
 			}
 	}; // class Intake
 
+	/// @brief Class which instantiates components easily
+	class ComponentFactory {
+		private:
+		protected:
+		public:
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// ACA = AbstractComponentArgs
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+			AbstractComponent::AbstractComponentArgs aca;
+
+			/// @brief Args for component factory object
+			/// @param aca Args to instantiate any abstract component
+			struct ComponentFactoryArgs {
+				AbstractComponent::AbstractComponentArgs aca;
+			};
+
+			/// @brief Creates component factory object
+			/// @param args Args for component factory object (check args struct for more info)
+			ComponentFactory(ComponentFactoryArgs args) : 
+				aca(args.aca) {};
+
+			/// @brief Creates an object of a specific component
+			template <typename ComponentType, typename... Args>
+			unique_ptr<AbstractComponent> create(Args&&... args) {
+				typename ComponentType::ArgsType componentArgs = {aca, std::forward<Args>(args)...};
+
+				return std::make_unique<ComponentType>(componentArgs);
+			}
+	}; // class ComponentFactory
+
 	/// @brief Class which manages all components
 	class ComponentManager : public AbstractComponent {
 		private:
 		protected:
 		public:
+			// TODO: use this factory to create components & refactor all components to be unique_ptrs
+			ComponentFactory factory;
+
 			Drivetrain dvt;
 
 			MogoMech mogoMech;
@@ -1066,6 +1112,7 @@ namespace hyper {
 			/// @param args Args for component manager object (see args struct for more info)
 			ComponentManager(ComponentManagerArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
+				factory({args.abstractComponentArgs}),
 				dvt({args.abstractComponentArgs, args.user.dvtPorts}),
 				mogoMech({args.abstractComponentArgs, args.user.mogoMechPort}),
 				conveyer({args.abstractComponentArgs, args.user.conveyerPorts}),
