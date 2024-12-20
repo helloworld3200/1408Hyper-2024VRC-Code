@@ -160,7 +160,7 @@ namespace hyper {
 			/// @param ports Vector of ports for motor group
 			struct AbstractMGArgs {
 				AbstractComponentArgs abstractComponentArgs;
-				vector<std::int8_t> ports;
+				MGPorts ports;
 			};
 
 			Speeds speeds = {};
@@ -1027,162 +1027,11 @@ namespace hyper {
 			}
 	}; // class Intake
 
-	/// @brief Chassis class for controlling auton/driver control
-	class Chassis : public AbstractChassis {
+	/// @brief Class which manages all components
+	class ComponentManager : public AbstractComponent {
 		private:
-			void defaultAuton() {
-				// destruction 100
-
-				/*//dvt.moveRelPos(300);
-				//
-				dvt.turnDelay(true, 600);
-				dvt.moveRelPos(100);
-				dvt.turnDelay(false, 400);
-				//dvt.moveRelPos(150);
-				dvt.turnDelay(true, 300);*/
-
-				/*intake.move(true, false);
-				conveyer.move(true);*/
-
-				// Because auton is only 15 secs no need to divide into sectors
-				// Move and collect first rings/discombobulate first
-				//intake.move(true);
-				dvt.turnDelay(true, 600);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(50);
-
-				// Get the far ring and turn back onto main path
-				// (no longer necessarily needed because we start with 1 ring already in the robot)
-				dvt.turnDelay(true, 330);
-				dvt.moveRelPos(105);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				//dvt.turnDelay(false, 1.5);
-
-				// Get other stack knocked over
-				// optional: increase speed to intake if we have no harvester
-				//dvt.moveRelPos(130);
-				//dvt.moveDelay(600, false);
-				dvt.turnDelay(false, 450);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-				dvt.moveRelPos(160);
-				
-				// Turn into high wall stake & deposit
-				dvt.turnDelay(false, 870);
-				dvt.moveDelay(800, false);
-				//intake.move(false);
-				//liftMech.actuate(true);
-				//pros::delay(MAINLOOP_DELAY_TIME_MS);
-
-				// Deposit on high wall stake
-				//conveyer.move(true, false);
-				pros::delay(2000);
-				//conveyer.move(false);
-				//liftMech.actuate(false);
-			}
-
-			void linedAuton() {
-				dvt.PIDMove(30);
-				dvt.PIDTurn(-45);
-				dvt.moveDelay(500);
-			}
-			
-			void calcCoefficientAuton()  {
-				// 1 tile = 2 feet = 24 inches
-				// 72 = 3 tiles = 3 feet
-				// 96 = 4 tiles = 4 feet
-				dvt.PIDMove(-24);
-			}
-
-			void testIMUAuton() {
-				dvt.moveVelocity(500, -500);
-				pros::lcd::set_text(5, std::to_string(dvt.getHeading()));
-				pros::delay(10);
-			}
-
-			void calcTurnAuton() {
-				dvt.PIDTurn(-90);
-			}
-
-			void advancedAuton() {
-				// Deposit preload on low wall stake
-				dvt.PIDMove(5);
-				pros::lcd::print(2, "Initial phase complete");
-				//conveyer.move(true);
-
-				// Move to mogo
-				// CURSED LINE!!!!
-				//dvt.PIDTurn(-30);
-
-				dvt.PIDTurn(-50);
-				
-				dvt.moveDelay(1000, false);
-
-				dvt.PIDTurn(30);
-				
-				// Turn halfway through going to mogo
-				dvt.PIDTurn(23);
-				dvt.PIDTurn(180);
-				dvt.PIDMove(20);
-
-				// Collect mogo
-				mogoMech.actuate(true);
-				return;
-				dvt.PIDMove(19);
-				mogoMech.actuate(false);
-
-				// Collect rings
-				dvt.PIDTurn(-70);
-				intake.move(true);
-				dvt.PIDMove(27);
-				pros::delay(500);
-				intake.move(false);
-
-				// Prepare for opcontrol
-				//conveyer.move(false);
-			}
-
-			void skillsSector1() {
-				mogoMech.actuate(false);	
-				dvt.PIDMove(-9);
-				mogoMech.actuate(true);
-				conveyer.move(true);
-
-				dvt.PIDTurn(-30);
-				dvt.moveDelay(300);
-				dvt.PIDMove(6);
-				dvt.PIDTurn(180);
-				dvt.PIDMove(22);
-
-				dvt.PIDTurn(90);
-				dvt.PIDMove(22);
-				dvt.PIDTurn(90);
-				dvt.PIDMove(47);
-				dvt.PIDTurn(90);
-
-				dvt.moveDelay(400, false);
-				mogoMech.actuate(false);
-				dvt.PIDMove(5);
-				dvt.PIDTurn(90);
-			}
-
-			void skillsSector2() {
-
-			}
 		protected:
 		public:
-			/// @brief Args for chassis object
-			/// @param dvtArgs Args for drivetrain object
-			/// @param mogoMechPort Port for mogo mech
-			/// @param conveyerPorts Vector of ports for conveyer motors
-			struct ChassisArgs {
-				Drivetrain::DrivetrainPorts dvtPorts;
-				char mogoMechPort;
-				vector<std::int8_t> conveyerPorts;
-				vector<std::int8_t> intakePorts;
-				std::int8_t colorSensorPort;
-				vector<char> backUltraPorts;
-			};
-
 			Drivetrain dvt;
 
 			MogoMech mogoMech;
@@ -1190,29 +1039,207 @@ namespace hyper {
 			Conveyer conveyer;
 			Intake intake;
 
+			// All components are stored in this vector
 			vector<AbstractComponent*> components;
 
-			/// @brief Creates chassis object
-			/// @param args Args for chassis object (check args struct for more info)
-			Chassis(ChassisArgs args) :  
-				dvt({this, args.dvtPorts}),
-				mogoMech({this, args.mogoMechPort}),
-				conveyer({this, args.conveyerPorts}), 
-				intake({this, args.intakePorts}) {
-					components = {&dvt, &mogoMech, &conveyer, &intake};
+			/// @brief Args for component manager object passed to the chassis, such as ports
+			/// @param dvtArgs Args for drivetrain object
+			/// @param mogoMechArgs Args for mogo mech object
+			/// @param conveyerArgs Args for conveyer object
+			/// @param intakeArgs Args for intake object
+			struct ComponentManagerUserArgs {
+				Drivetrain::DrivetrainPorts dvtPorts;
+				char mogoMechPort;
+				MGPorts conveyerPorts;
+				MGPorts intakePorts;
+			};
+
+			/// @brief Args for component manager object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param user Args for component manager object passed to the chassis
+			struct ComponentManagerArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				ComponentManagerUserArgs user;
+			};
+
+			/// @brief Constructor for component manager object
+			/// @param args Args for component manager object (see args struct for more info)
+			ComponentManager(ComponentManagerArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				dvt({args.abstractComponentArgs, args.user.dvtPorts}),
+				mogoMech({args.abstractComponentArgs, args.user.mogoMechPort}),
+				conveyer({args.abstractComponentArgs, args.user.conveyerPorts}),
+				intake({args.abstractComponentArgs, args.user.intakePorts}) {
+					// Add component pointers to vector
+					// MUST BE DONE AFTER INITIALISATION not BEFORE because of pointer issues
+					components = {
+						&dvt,
+						&mogoMech,
+						&conveyer,
+						&intake
+					};
 				};
 
-			/// @brief Runs the default drive mode specified in opControlMode 
-			/// (recommended to be used instead of directly calling the control functions)
+			// Nice and simple :) definitely better than having to call each component individually
 			void opControl() override {
 				for (AbstractComponent* component : components) {
 					component->opControl();
 				}
 			}
+	}; // class ComponentManager
 
-			/// @brief Auton function for the chassis
-			// 1000 = 70cm
-			void auton() override {
+	/// @brief Abstract class for auton e.g. match or skills autonomous
+	class AbstractAuton {
+		private:
+		protected:
+			ComponentManager* cm;
+		public:
+			/// @brief Args for auton object
+			/// @param cm Component manager object
+			struct AutonArgs {
+				ComponentManager* cm;
+			};
+
+			/// @brief Creates auton object
+			/// @param args Args for auton object (check args struct for more info)
+			AbstractAuton(AutonArgs args) : 
+				cm(args.cm) {};
+
+			/// @brief Runs the auton
+			virtual void run() = 0;
+
+			virtual ~AbstractAuton() = default;
+	}; // class AbstractAuton
+
+	class MatchAuton : public AbstractAuton {
+		private:
+			void defaultAuton() {
+				// destruction 100
+
+				/*//cm->dvt.moveRelPos(300);
+				//
+				cm->dvt.turnDelay(true, 600);
+				cm->dvt.moveRelPos(100);
+				cm->dvt.turnDelay(false, 400);
+				//cm->dvt.moveRelPos(150);
+				cm->dvt.turnDelay(true, 300);*/
+
+				/*cm->intake.move(true, false);
+				cm->conveyer.move(true);*/
+
+				// Because auton is only 15 secs no need to divide into sectors
+				// Move and collect first rings/discombobulate first
+				//cm->intake.move(true);
+				cm->dvt.turnDelay(true, 600);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				cm->dvt.moveRelPos(50);
+
+				// Get the far ring and turn back onto main path
+				// (no longer necessarily needed because we start with 1 ring already in the robot)
+				cm->dvt.turnDelay(true, 330);
+				cm->dvt.moveRelPos(105);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				//cm->dvt.turnDelay(false, 1.5);
+
+				// Get other stack knocked over
+				// optional: increase speed to cm->intake if we have no harvester
+				//cm->dvt.moveRelPos(130);
+				//cm->dvt.moveDelay(600, false);
+				cm->dvt.turnDelay(false, 450);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+				cm->dvt.moveRelPos(160);
+				
+				// Turn into high wall stake & deposit
+				cm->dvt.turnDelay(false, 870);
+				cm->dvt.moveDelay(800, false);
+				//cm->intake.move(false);
+				//liftMech.actuate(true);
+				//pros::delay(MAINLOOP_DELAY_TIME_MS);
+
+				// Deposit on high wall stake
+				//cm->conveyer.move(true, false);
+				pros::delay(2000);
+				//cm->conveyer.move(false);
+				//liftMech.actuate(false);
+			}
+
+			void linedAuton() {
+				cm->dvt.PIDMove(30);
+				cm->dvt.PIDTurn(-45);
+				cm->dvt.moveDelay(500);
+			}
+			
+			void calcCoefficientAuton()  {
+				// 1 tile = 2 feet = 24 inches
+				// 72 = 3 tiles = 3 feet
+				// 96 = 4 tiles = 4 feet
+				cm->dvt.PIDMove(-24);
+			}
+
+			void testIMUAuton() {
+				cm->dvt.moveVelocity(500, -500);
+				pros::lcd::set_text(5, std::to_string(cm->dvt.getHeading()));
+				pros::delay(10);
+			}
+
+			void calcTurnAuton() {
+				cm->dvt.PIDTurn(-90);
+			}
+
+			void advancedAuton() {
+				// Deposit preload on low wall stake
+				cm->dvt.PIDMove(5);
+				pros::lcd::print(2, "Initial phase complete");
+				//cm->conveyer.move(true);
+
+				// Move to mogo
+				// CURSED LINE!!!!
+				//cm->dvt.PIDTurn(-30);
+
+				cm->dvt.PIDTurn(-50);
+				
+				cm->dvt.moveDelay(1000, false);
+
+				cm->dvt.PIDTurn(30);
+				
+				// Turn halfway through going to mogo
+				cm->dvt.PIDTurn(23);
+				cm->dvt.PIDTurn(180);
+				cm->dvt.PIDMove(20);
+
+				// Collect mogo
+				cm->mogoMech.actuate(true);
+				return;
+				cm->dvt.PIDMove(19);
+				cm->mogoMech.actuate(false);
+
+				// Collect rings
+				cm->dvt.PIDTurn(-70);
+				cm->intake.move(true);
+				cm->dvt.PIDMove(27);
+				pros::delay(500);
+				cm->intake.move(false);
+
+				// Prepare for opcontrol
+				//cm->conveyer.move(false);
+			}
+		protected:
+		public:
+			/// @brief Args for match auton object
+			/// @param autonArgs Args for auton object
+			struct MatchAutonArgs {
+				AutonArgs autonArgs;
+			};
+
+			/// @brief Creates match auton object
+			/// @param args Args for match auton object (check args struct for more info)
+			MatchAuton(MatchAutonArgs args) : 
+				AbstractAuton(args.autonArgs) {};
+
+			// TODO: Implement
+			void run() override {
+				// just comment out the auton function u dont want
+
 				//defaultAuton();
 				//calcCoefficientAuton();
 				//calcTurnAuton();
@@ -1220,10 +1247,94 @@ namespace hyper {
 				//linedAuton();
 				advancedAuton();
 			}
+	}; // class MatchAuton
 
+	class SkillsAuton : public AbstractAuton {
+		private:
+			void sector1() {
+				cm->mogoMech.actuate(false);	
+				cm->dvt.PIDMove(-9);
+				cm->mogoMech.actuate(true);
+				cm->conveyer.move(true);
+
+				cm->dvt.PIDTurn(-30);
+				cm->dvt.moveDelay(300);
+				cm->dvt.PIDMove(6);
+				cm->dvt.PIDTurn(180);
+				cm->dvt.PIDMove(22);
+
+				cm->dvt.PIDTurn(90);
+				cm->dvt.PIDMove(22);
+				cm->dvt.PIDTurn(90);
+				cm->dvt.PIDMove(47);
+				cm->dvt.PIDTurn(90);
+
+				cm->dvt.moveDelay(400, false);
+				cm->mogoMech.actuate(false);
+				cm->dvt.PIDMove(5);
+				cm->dvt.PIDTurn(90);
+			}
+
+			void sector2() {
+
+			}
+		protected:
+		public:
+			/// @brief Args for skills auton object
+			/// @param autonArgs Args for auton object
+			struct SkillsAutonArgs {
+				AutonArgs autonArgs;
+			};
+
+			/// @brief Creates skills auton object
+			/// @param args Args for skills auton object (check args struct for more info)
+			SkillsAuton(SkillsAutonArgs args) : 
+				AbstractAuton(args.autonArgs) {};
+
+			// TODO: Implement
+			void run() override {
+				sector1();
+				sector2();
+			}
+	}; // class SkillsAuton
+
+	/// @brief Chassis class for controlling auton/driver control
+	class Chassis : public AbstractChassis {
+		private:
+		protected:
+		public:
+			/// @brief Args for chassis object
+			/// @param cmUserArgs Args for component manager object
+			struct ChassisArgs {
+				ComponentManager::ComponentManagerUserArgs cmUserArgs;
+			};
+
+			ComponentManager cm;
+
+			MatchAuton matchAuton;
+			SkillsAuton skillsAuton;
+
+			/// @brief Creates chassis object
+			/// @param args Args for chassis object (check args struct for more info)
+			Chassis(ChassisArgs args) : 
+				cm({this, args.cmUserArgs}),
+				matchAuton({&cm}),
+				skillsAuton({&cm}) {};
+
+			/// @brief Runs the opcontrol functions for each component
+			void opControl() override {
+				cm.opControl();
+			}
+
+			/// @brief Auton function for the chassis
+			// 1000 = 70cm
+			void auton() override {
+				matchAuton.run();
+			}
+
+			/// @brief Skills function for the chassis
 			void skills() override {
-				skillsSector1();
-				skillsSector2();
+				skillsAuton.run();
 			}
 	}; // class Chassis
 
@@ -1327,9 +1438,8 @@ hyper::AbstractChassis* currentChassis;
 
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
-		{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-	MOGO_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, 
-	COLOR_SENSOR_PORT, BACK_ULTRA_PORTS});
+		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
+		MOGO_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS}});
 	
 	currentChassis = &defaultChassis;
 }

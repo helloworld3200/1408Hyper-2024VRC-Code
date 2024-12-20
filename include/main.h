@@ -68,9 +68,13 @@
 
 // TODO: Refactor our code into different files--main.cpp is getting too big
 
-// Using declarations
+// Using declarations to shorten common types
 using std::vector;
 using std::string;
+
+// Shorthands for port types & other type aliases
+using MGPorts = vector<std::int8_t>;
+using AnalogPort = char;
 
 /**
  * If you find doing pros::Motor() to be tedious and you'd prefer just to do
