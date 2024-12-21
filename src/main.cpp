@@ -1362,6 +1362,7 @@ namespace hyper {
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) : 
+				AbstractChassis(),
 				cm({this, args.cmUserArgs}),
 				matchAuton({&cm}),
 				skillsAuton({&cm}) {};
