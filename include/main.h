@@ -57,6 +57,8 @@
 #include <cerrno>
 // Standard library
 #include <cstdlib>
+// Mapping dictionary
+#include <map>
 
 // fmt is gone
 
@@ -71,6 +73,7 @@
 // Using declarations to shorten common types
 using std::vector;
 using std::string;
+using std::map;
 
 using std::unique_ptr;
 using std::shared_ptr;

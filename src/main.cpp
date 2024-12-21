@@ -104,6 +104,35 @@ namespace hyper {
 			virtual ~AbstractComponent() = default;
 	}; // class ChassisComponent
 
+	/// @brief Class which instantiates component arguments easily
+	class ComponentArgsFactory {
+		private:
+		protected:
+		public:
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// ACA = AbstractComponentArgs
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+			AbstractComponent::AbstractComponentArgs aca;
+
+			/// @brief Args for component factory object
+			/// @param aca Args to instantiate any abstract component
+			struct ComponentArgsFactoryArgs {
+				AbstractComponent::AbstractComponentArgs aca;
+			};
+
+			/// @brief Creates component factory object
+			/// @param args Args for component factory object (check args struct for more info)
+			ComponentArgsFactory(ComponentArgsFactoryArgs args) : 
+				aca(args.aca) {};
+
+			/// @brief Manages safe creation of args for a specific component
+			template <typename ComponentType, typename... Args>
+			typename ComponentType::ArgsType create(Args&&... args) {
+				return {aca, std::forward<Args>(args)...};
+			}
+	}; // class ComponentFactory
+
 	class AbstractMech : public AbstractComponent {
 		private:
 			bool engaged = false;
@@ -151,9 +180,8 @@ namespace hyper {
 	class AbstractMG : public AbstractComponent {
 		private:		
 		protected:
-		public:
 			const pros::MotorGroup mg;
-
+		public:
 			struct Speeds {
 				int fwd = 10000;
 				int back = -10000;
@@ -197,6 +225,44 @@ namespace hyper {
 			virtual ~AbstractMG() = default;
 			
 	}; // class AbstractMG
+
+	/// @brief Class which manages button presses (will run function on up, down and hold states of given button)
+	class BtnManager : public AbstractComponent {
+		private:
+		protected:
+		public:
+			// HOLD is executed repeatedly while the button held down
+			// UP/DOWN are only executed once when the state is reached
+			enum class State {
+				UP,
+				DOWN,
+				HOLD,
+				_MAX // don't change this: here to provide the max number of states
+			};
+
+			State lastState = State::UP;
+
+			// Functions which will be triggered when a given state is reached
+			map<State, vector<std::function<void()>>> funcs = {
+				{State::UP, {}},
+				{State::DOWN, {}},
+				{State::HOLD, {}}
+			};
+
+			// Button which will trigger functions
+			pros::controller_digital_e_t btn;
+
+			/// @brief Args for button manager object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			struct BtnManagerArgs {
+				AbstractComponentArgs abstractComponentArgs;
+			};
+
+			/// @brief Creates button manager object
+			/// @param args Args for button manager object (check args struct for more info)
+			BtnManager(BtnManagerArgs args) : 
+				AbstractComponent(args.abstractComponentArgs) {};
+	};
 
 	/// @brief Class for a toggle on the controller
 	class MechToggle {
@@ -1014,13 +1080,6 @@ namespace hyper {
 
 			using ArgsType = IntakeArgs;
 
-			struct Speeds {
-				int fwd = 1000;
-				int back = -1000;
-			};
-
-			Speeds speeds = {};
-
 			/// @brief Constructor for intake object
 			/// @param args Args for intake object (see args struct for more info)
 			Intake(IntakeArgs args) :
@@ -1039,34 +1098,46 @@ namespace hyper {
 			}
 	}; // class Intake
 
-	/// @brief Class which instantiates component arguments easily
-	class ComponentArgsFactory {
+	/// @brief Class which manages the Lady Brown mechanism
+	class LadyBrown : public AbstractMG {
 		private:
+			int currentTarget = 0;
 		protected:
 		public:
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// ACA = AbstractComponentArgs
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-			AbstractComponent::AbstractComponentArgs aca;
-
-			/// @brief Args for component factory object
-			/// @param aca Args to instantiate any abstract component
-			struct ComponentArgsFactoryArgs {
-				AbstractComponent::AbstractComponentArgs aca;
+			/// @brief Args for Lady Brown object
+			/// @param abstractMGArgs Args for AbstractMG object
+			/// @param ladyBrownPorts Vector of ports for Lady Brown motors
+			struct LadyBrownArgs {
+				AbstractMGArgs abstractMGArgs;
+				MGPorts ladyBrownPorts;
 			};
 
-			/// @brief Creates component factory object
-			/// @param args Args for component factory object (check args struct for more info)
-			ComponentArgsFactory(ComponentArgsFactoryArgs args) : 
-				aca(args.aca) {};
+			using ArgsType = LadyBrownArgs;
 
-			/// @brief Manages safe creation of args for a specific component
-			template <typename ComponentType, typename... Args>
-			typename ComponentType::ArgsType create(Args&&... args) {
-				return {aca, std::forward<Args>(args)...};
+			// Target position to move to (start, halfway, end)
+			vector<double> targets = {0, 100, 200};
+
+			/// @brief Constructor for Lady Brown object
+			/// @param args Args for Lady Brown object (see args struct for more info)
+			LadyBrown(LadyBrownArgs args) : 
+				AbstractMG(args.abstractMGArgs) {};
+
+			/// @brief Changes the target by the amount specified by the change parameter
+			/// @param change Amount to change the target by
+			void changeTarget(int change) {
+				int limit = targets.size() - 1;
+				currentTarget += change;
+				currentTarget = std::clamp(currentTarget, 0, limit);
 			}
-	}; // class ComponentFactory
+
+			bool canMove(bool on) override {
+				return on;
+			}
+
+			void opControl() override {
+
+			}
+	};
 
 	/// @brief Class which manages all components
 	class ComponentManager : public AbstractComponent {
@@ -1081,6 +1152,7 @@ namespace hyper {
 
 			Conveyer conveyer;
 			Intake intake;
+			LadyBrown ladyBrown;
 
 			// All components are stored in this vector
 			vector<AbstractComponent*> components;
@@ -1095,6 +1167,7 @@ namespace hyper {
 				char mogoMechPort;
 				MGPorts conveyerPorts;
 				MGPorts intakePorts;
+				MGPorts ladyBrownPorts;
 			};
 
 			/// @brief Args for component manager object
@@ -1114,14 +1187,16 @@ namespace hyper {
 				dvt(factory.create<Drivetrain>(args.user.dvtPorts)),
 				mogoMech(factory.create<MogoMech>(args.user.mogoMechPort)),
 				conveyer(factory.create<Conveyer>(args.user.conveyerPorts)),
-				intake(factory.create<Intake>(args.user.intakePorts)) {
+				intake(factory.create<Intake>(args.user.intakePorts)),
+				ladyBrown(factory.create<LadyBrown>(args.user.ladyBrownPorts)) {
 					// Add component pointers to vector
 					// MUST BE DONE AFTER INITIALISATION not BEFORE because of pointer issues
 					components = {
 						&dvt,
 						&mogoMech,
 						&conveyer,
-						&intake
+						&intake,
+						&ladyBrown
 					};
 				};
 
@@ -1485,7 +1560,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-		MOGO_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS}});
+		MOGO_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, LADY_BROWN_PORTS}});
 	
 	currentChassis = &defaultChassis;
 }
