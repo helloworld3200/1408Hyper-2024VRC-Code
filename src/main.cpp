@@ -80,7 +80,7 @@ namespace hyper {
 				AbstractChassis* chassis;
 			};
 
-			/// @brief Creates AbstractComponent object
+			/// @brief Creates AbstractComponent object (WARNING: Use ComponentArgsFactory to create args instead of directly)
 			/// @param args Args AbstractComponent object (check args struct for more info)
 			AbstractComponent(AbstractComponentArgs args) : 
 			chassis(args.chassis),
@@ -1039,8 +1039,8 @@ namespace hyper {
 			}
 	}; // class Intake
 
-	/// @brief Class which instantiates components easily
-	class ComponentFactory {
+	/// @brief Class which instantiates component arguments easily
+	class ComponentArgsFactory {
 		private:
 		protected:
 		public:
@@ -1052,21 +1052,19 @@ namespace hyper {
 
 			/// @brief Args for component factory object
 			/// @param aca Args to instantiate any abstract component
-			struct ComponentFactoryArgs {
+			struct ComponentArgsFactoryArgs {
 				AbstractComponent::AbstractComponentArgs aca;
 			};
 
 			/// @brief Creates component factory object
 			/// @param args Args for component factory object (check args struct for more info)
-			ComponentFactory(ComponentFactoryArgs args) : 
+			ComponentArgsFactory(ComponentArgsFactoryArgs args) : 
 				aca(args.aca) {};
 
-			/// @brief Creates an object of a specific component
+			/// @brief Manages safe creation of args for a specific component
 			template <typename ComponentType, typename... Args>
-			unique_ptr<AbstractComponent> create(Args&&... args) {
-				typename ComponentType::ArgsType componentArgs = {aca, std::forward<Args>(args)...};
-
-				return std::make_unique<ComponentType>(componentArgs);
+			typename ComponentType::ArgsType create(Args&&... args) {
+				return {aca, std::forward<Args>(args)...};
 			}
 	}; // class ComponentFactory
 
@@ -1075,8 +1073,7 @@ namespace hyper {
 		private:
 		protected:
 		public:
-			// TODO: use this factory to create components & refactor all components to be unique_ptrs
-			ComponentFactory factory;
+			ComponentArgsFactory factory;
 
 			Drivetrain dvt;
 
@@ -1113,10 +1110,11 @@ namespace hyper {
 			ComponentManager(ComponentManagerArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				factory({args.abstractComponentArgs}),
-				dvt({args.abstractComponentArgs, args.user.dvtPorts}),
-				mogoMech({args.abstractComponentArgs, args.user.mogoMechPort}),
-				conveyer({args.abstractComponentArgs, args.user.conveyerPorts}),
-				intake({args.abstractComponentArgs, args.user.intakePorts}) {
+
+				dvt(factory.create<Drivetrain>(args.user.dvtPorts)),
+				mogoMech(factory.create<MogoMech>(args.user.mogoMechPort)),
+				conveyer(factory.create<Conveyer>(args.user.conveyerPorts)),
+				intake(factory.create<Intake>(args.user.intakePorts)) {
 					// Add component pointers to vector
 					// MUST BE DONE AFTER INITIALISATION not BEFORE because of pointer issues
 					components = {
