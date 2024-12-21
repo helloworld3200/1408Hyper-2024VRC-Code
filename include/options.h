@@ -22,6 +22,9 @@
 // Motor ports for the intake motor group
 #define INTAKE_PORTS {-2}
 
+// Motor ports for the lady brown mech
+#define LADY_BROWN_PORTS {4, -5}
+
 // Port for the color sensor
 #define COLOR_SENSOR_PORT 5
 
