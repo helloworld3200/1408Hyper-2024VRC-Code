@@ -1184,12 +1184,19 @@ namespace hyper {
 					pros::E_CONTROLLER_DIGITAL_DOWN, {std::bind(decrementTarget, this)}, {}, {}
 				}}) {};
 
+			void btnOpControl() {
+				upBtn.opControl();
+				downBtn.opControl();
+			}
+
 			bool canMove(bool on) override {
 				return on;
 			}
 
 			void opControl() override {
+				btnOpControl();
 
+				// TODO: implement moving the lady brown to targets with PID
 			}
 	};
 
