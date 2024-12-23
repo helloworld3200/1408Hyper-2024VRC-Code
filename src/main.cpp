@@ -38,6 +38,12 @@ namespace hyper {
 	template <typename T>
 	T naiveNormaliseAngle(T angle);
 
+	template <typename T>
+	vector<T> getAllValues() {}
+
+	template <typename E, typename V>
+	void fillMapWithEnum(map<E, V>& map) {}
+
 	// Class declarations
 
 	/// @brief Abstract chassis class for if you want a custom chassis class
@@ -229,39 +235,70 @@ namespace hyper {
 	/// @brief Class which manages button presses (will run function on up, down and hold states of given button)
 	class BtnManager : public AbstractComponent {
 		private:
+			bool lastPressed = false;
+
+			void handleBtnPressed() {
+				if (lastPressed) {
+					for (VoidFunc& func: actionInfo.holdFuncs) {
+						func();
+					}
+				} else {
+					for (VoidFunc& func: actionInfo.downFuncs) {
+						func();
+					}
+				}
+			}
 		protected:
 		public:
-			// HOLD is executed repeatedly while the button held down
-			// UP/DOWN are only executed once when the state is reached
-			enum class State {
-				UP,
-				DOWN,
-				HOLD,
-				_MAX // don't change this: here to provide the max number of states
+			/// @brief Struct for action info for button manager object
+			/// @param upFuncs Functions that are run once when up state is reached
+			/// @param downFuncs Functions that are run once when down state is reached
+			/// @param holdFuncs Functions to continuously run on hold state
+			/// @param btn Button to manage
+			struct ActionInfo {
+				pros::controller_digital_e_t btn;
+				VoidFuncVector downFuncs = {};
+				VoidFuncVector upFuncs = {};
+				VoidFuncVector holdFuncs = {};
 			};
 
-			State lastState = State::UP;
-
-			// Functions which will be triggered when a given state is reached
-			map<State, vector<std::function<void()>>> funcs = {
-				{State::UP, {}},
-				{State::DOWN, {}},
-				{State::HOLD, {}}
-			};
-
-			// Button which will trigger functions
-			pros::controller_digital_e_t btn;
+			ActionInfo actionInfo;
 
 			/// @brief Args for button manager object
 			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param actionInfo Action info for button manager object
 			struct BtnManagerArgs {
 				AbstractComponentArgs abstractComponentArgs;
+				ActionInfo actionInfo;
 			};
 
 			/// @brief Creates button manager object
 			/// @param args Args for button manager object (check args struct for more info)
 			BtnManager(BtnManagerArgs args) : 
-				AbstractComponent(args.abstractComponentArgs) {};
+				AbstractComponent(args.abstractComponentArgs),
+				actionInfo(args.actionInfo) {};
+
+			void opControl() override {
+				bool btnPressed = master->get_digital(actionInfo.btn);
+				
+				// down: !lastPressed && btnPressed
+				// up: lastPressed && !btnPressed
+				// hold: lastPressed && btnPressed
+
+				if (btnPressed) {
+					handleBtnPressed();
+				} else if (lastPressed) {
+					for (VoidFunc& func: actionInfo.upFuncs) {
+						func();
+					}
+				}
+
+				lastPressed = btnPressed;
+			}
+
+			bool getLastPressed() {
+				return lastPressed;
+			}
 	};
 
 	/// @brief Class for a toggle on the controller
@@ -1117,10 +1154,8 @@ namespace hyper {
 			// Target position to move to (start, halfway, end)
 			vector<double> targets = {0, 100, 200};
 
-			/// @brief Constructor for Lady Brown object
-			/// @param args Args for Lady Brown object (see args struct for more info)
-			LadyBrown(LadyBrownArgs args) : 
-				AbstractMG(args.abstractMGArgs) {};
+			BtnManager upBtn;
+			BtnManager downBtn;
 
 			/// @brief Changes the target by the amount specified by the change parameter
 			/// @param change Amount to change the target by
@@ -1129,6 +1164,25 @@ namespace hyper {
 				currentTarget += change;
 				currentTarget = std::clamp(currentTarget, 0, limit);
 			}
+
+			void incrementTarget() {
+				changeTarget(1);
+			}
+
+			void decrementTarget() {
+				changeTarget(-1);
+			}
+
+			/// @brief Constructor for Lady Brown object
+			/// @param args Args for Lady Brown object (see args struct for more info)
+			LadyBrown(LadyBrownArgs args) : 
+				AbstractMG(args.abstractMGArgs),
+				upBtn({args.abstractMGArgs.abstractComponentArgs, {
+					pros::E_CONTROLLER_DIGITAL_UP, {std::bind(incrementTarget, this)}, {}, {} 
+				}}),
+				downBtn({args.abstractMGArgs.abstractComponentArgs, {
+					pros::E_CONTROLLER_DIGITAL_DOWN, {std::bind(decrementTarget, this)}, {}, {}
+				}}) {};
 
 			bool canMove(bool on) override {
 				return on;
@@ -1543,6 +1597,34 @@ namespace hyper {
 
 		return angle;
 	}
+
+	/// @brief Get all the values of an enum class into a vector
+	template <typename T>
+	vector<T> getAllValues() {
+		vector<T> values;
+		constexpr int max = static_cast<int>(T::_MAX);
+		values.reserve(max);
+
+		for (int i = 0; i < max; i++) {
+			values.push_back(static_cast<T>(i));
+		}
+
+		return values;
+	}
+
+	/// @brief Fill a map with default values for an enum class (see below function def for example use case)
+	/// @param map Map to fill
+	template <typename E, typename V>
+	void fillMapWithEnum(map<E, V>& map) {
+		vector<E> values = getAllValues<E>();
+		E defaultValue = V();
+
+		for (E value : values) {
+			map[value] = defaultValue;
+		}
+	}
+	// example use case
+	//fillMapWithEnum<pros::controller_digital_e_t, bool>(map);
 } // namespace hyper
 
 // Global variables
