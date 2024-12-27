@@ -1,6 +1,6 @@
 # I'm 99% sure this is totally broken and doesn't work, but I'm keeping it here for reference
 # Isn't really needed to be updated so I'm not going to bother fixing it
-# Also we use PROS anyway lol
+# Also we use PROS anyway
 
 # Install ARM GCC toolchain (arm-none-eabi-gcc/g++) on linux
 # can be used for CI testing or CodeQL, for final build use PROS
