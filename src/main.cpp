@@ -1530,6 +1530,7 @@ private:
 				//calcTurnAuton();
 				//testIMUAuton();
 				//linedAuton();
+				//aadiAuton();
 				advancedAuton();
 			}
 	}; // class MatchAuton
