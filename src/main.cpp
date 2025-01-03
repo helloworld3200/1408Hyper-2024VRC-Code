@@ -1459,7 +1459,7 @@ private:
 
 			void advancedAuton() {
 				// Deposit preload on low wall stake
-				/*cm->dvt.PIDMove(5);
+				cm->dvt.PIDMove(5);
 				pros::lcd::print(2, "Initial phase complete");
 				//cm->conveyer.move(true);
 
@@ -1478,7 +1478,7 @@ private:
 				cm->dvt.PIDTurn(180);
 				cm->dvt.PIDMove(20);
 
-				*/
+				
 				// Collect mogo
 				cm->mogoMech.actuate(false);
 				//return;
