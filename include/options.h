@@ -16,6 +16,12 @@
 // Digital sensor port for pneumatics conveyor lift
 #define LIFT_MECH_PORT 'B'
 
+// Digital sensor port for pneumatics doinker
+#define DOINKER_PORT 'C'
+
+// Ultrasound (1st is ping port, 2nd is echo port)
+#define BACK_ULTRA_PORTS {'A', 'B'}
+
 // Motor ports for the conveyer (real is 10 but use 11 to just turn it off for debugging)
 #define CONVEYER_PORTS {4, -10}
 
@@ -31,8 +37,6 @@
 // Ports for telemetry
 // IMU
 #define IMU_PORT 12
-// Ultrasound (1st is ping port, 2nd is echo port)
-#define BACK_ULTRA_PORTS {'A', 'B'}
 
 // Turn on/off auton and opcontrol
 #define DO_MATCH_AUTON false

@@ -589,7 +589,7 @@ namespace hyper {
 
 					// lower arc speed is lower turning
 
-					DriveControlSpeed(float turnSpeed = 1, float forwardBackSpeed = 2, float arcSpeed = 0.8) :
+					DriveControlSpeed(float turnSpeed = 1, float forwardBackSpeed = 2, float arcSpeed = 0.5) :
 						turnSpeed(turnSpeed), 
 						arcSpeed(arcSpeed) {
 							setForwardBackSpeed(forwardBackSpeed);
@@ -644,6 +644,8 @@ namespace hyper {
 
 			int pidInvertTurn = 1;
 
+			float arcDeadband = 5;
+
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
@@ -667,6 +669,10 @@ namespace hyper {
 
 			// Calculate the movement of the robot when turning and moving laterally at the same time
 			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn, float maxLateralTolerance = 1) {
+				if (std::fabs(lateral) < arcDeadband) {
+					return;
+				}
+
 				// 0-1 range of percentage of lateral movement against max possible lateral movement
 				float lateralCompensation = lateral / driveControlSpeed.getMaxLateral();
 				// Decrease the turn speed when moving laterally
@@ -1199,20 +1205,35 @@ namespace hyper {
 			void decrementTarget() {
 				changeTarget(-1);
 			}
+		private:
+			void manualControl() {
+				bool belowLimit = mg.get_position() < limit;
 
+				if (master->get_digital(manualBtns.fwd) && belowLimit) {
+					move(true);
+				} else if (master->get_digital(manualBtns.back)) {
+					move(true, false);
+				} else {
+					move(false);
+				}
+			}
+
+			void upBtnControl() {
+				incrementTarget();
+
+				if (targets[currentTarget] == -1) {
+					atManualControl = true;
+				}
+			}
+		public:
 			/// @brief Constructor for Lady Brown object
 			/// @param args Args for Lady Brown object (see args struct for more info)
 			LadyBrown(LadyBrownArgs args) : 
 				AbstractMG(args.abstractMGArgs),
 				upBtn({args.abstractMGArgs.abstractComponentArgs, {
-					pros::E_CONTROLLER_DIGITAL_UP, {[this]() {
-						this->incrementTarget();
-						if (targets[currentTarget] == -1) {
-							atManualControl = true;
-						}
-					}}, {}, {} 
+					pros::E_CONTROLLER_DIGITAL_UP, {std::bind(&LadyBrown::upBtnControl, this)}, {}, {} 
 				}}) {
-					//mg.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+					mg.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 				};
 
 			bool canMove(bool on) override {
@@ -1224,21 +1245,49 @@ namespace hyper {
 
 				// Auto control if not manual controol
 				if (atManualControl) {
-					bool belowLimit = mg.get_position() < limit;
-
-					if (master->get_digital(manualBtns.fwd) && belowLimit) {
-						move(true);
-					} else if (master->get_digital(manualBtns.back)) {
-						move(true, false);
-					} else {
-						move(false);
-					}
+					manualControl();
 				} else {
 					mg.move_absolute(targets[currentTarget], speeds.fwd);
 				}
 				// TODO: implement moving the lady brown to targets with PID
 			}
 	}; // class LadyBrown
+
+	class Doinker : public AbstractMech {
+		private:
+		protected:
+		public:
+			/// @brief Args for doinker object
+			/// @param abstractMechArgs Args for AbstractMech object
+			struct DoinkerArgs {
+				AbstractMechArgs abstractMechArgs;
+			};
+
+			using ArgsType = DoinkerArgs;
+
+			BtnManager actuateBtn;
+			bool state = false;
+
+			void handleBtn() {
+				state = !state;
+				actuate(state);
+			}
+
+			/// @brief Constructor for doinker object
+			/// @param args Args for doinker object (see args struct for more info)
+			Doinker(DoinkerArgs args) : 
+				AbstractMech(args.abstractMechArgs),
+				actuateBtn({args.abstractMechArgs.abstractComponentArgs, {
+					pros::E_CONTROLLER_DIGITAL_X, {std::bind(&Doinker::handleBtn, this)}, {}, {}
+				}
+				}) {
+					actuate(state);
+				};
+
+			void opControl() override {
+				actuateBtn.opControl();
+			}
+	};
 
 	/// @brief Class which manages all components
 	class ComponentManager : public AbstractComponent {
@@ -1250,9 +1299,9 @@ namespace hyper {
 			Drivetrain dvt;
 
 			MogoMech mogoMech;
+			Doinker doinker;
 
 			Conveyer conveyer;
-			Intake intake;
 			LadyBrown ladyBrown;
 
 			// All components are stored in this vector
@@ -1266,8 +1315,8 @@ namespace hyper {
 			struct ComponentManagerUserArgs {
 				Drivetrain::DrivetrainPorts dvtPorts;
 				char mogoMechPort;
+				char doinkerPort;
 				MGPorts conveyerPorts;
-				MGPorts intakePorts;
 				MGPorts ladyBrownPorts;
 			};
 
@@ -1288,15 +1337,14 @@ namespace hyper {
 				dvt(factory.create<Drivetrain>(args.user.dvtPorts)),
 				mogoMech(factory.create<MogoMech>(args.user.mogoMechPort)),
 				conveyer(factory.create<Conveyer>(args.user.conveyerPorts)),
-				intake(factory.create<Intake>(args.user.intakePorts)),
-				ladyBrown(factory.create<LadyBrown>(args.user.ladyBrownPorts)) {
+				ladyBrown(factory.create<LadyBrown>(args.user.ladyBrownPorts)),
+				doinker(factory.create<Doinker>(args.user.doinkerPort)) {
 					// Add component pointers to vector
 					// MUST BE DONE AFTER INITIALISATION not BEFORE because of pointer issues
 					components = {
 						&dvt,
 						&mogoMech,
 						&conveyer,
-						&intake,
 						&ladyBrown
 					};
 				};
@@ -1690,7 +1738,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-		MOGO_MECH_PORT, CONVEYER_PORTS, INTAKE_PORTS, LADY_BROWN_PORTS}});
+		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS}});
 	
 	currentChassis = &defaultChassis;
 }
