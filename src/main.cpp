@@ -1484,7 +1484,19 @@ private:
 				//return;
 				cm->dvt.PIDMove(19);
 				//cm->mogoMech.actuate(false);
-			void aadiAuton(); {
+
+				// Collect rings
+				cm->dvt.PIDTurn(-70);
+				cm->conveyer.move(true);
+				cm->dvt.PIDMove(27);
+				pros::delay(500);
+				cm->conveyer.move(false);
+
+				// Prepare for opcontrol
+				//cm->conveyer.move(false);
+			}
+
+			void aadiAuton() {
 				cm->mogoMech.actuate(true);
                 cm->dvt.moveSingleVelocity(1);
                 cm->dvt.PIDMove(-29);
@@ -1495,16 +1507,6 @@ private:
                 cm->dvt.PIDTurn(-57);
                 cm->conveyer.move(true);
                 cm->dvt.PIDMove(30);
-			}
-				// Collect rings
-				cm->dvt.PIDTurn(-70);
-				cm->conveyer.move(true);
-				cm->dvt.PIDMove(27);
-				pros::delay(500);
-				cm->conveyer.move(false);
-
-				// Prepare for opcontrol
-				//cm->conveyer.move(false);
 			}
 		protected:
 		public:
