@@ -44,6 +44,17 @@ namespace hyper {
 	template <typename E, typename V>
 	void fillMapWithEnum(map<E, V>& map) {}
 
+	// Structs
+
+	/// @brief Struct for motor group buttons (manual control)
+	/// @param fwd Button for forward
+	/// @param back Button for backward
+
+	struct Buttons {
+		pros::controller_digital_e_t fwd;
+		pros::controller_digital_e_t back;
+	};
+
 	// Class declarations
 
 	/// @brief Abstract chassis class for if you want a custom chassis class
@@ -202,6 +213,7 @@ namespace hyper {
 			};
 
 			Speeds speeds = {};
+			bool outputSpeeds;
 
 			/// @brief Constructor for abstract motor group object
 			/// @param args Args for abstract motor group object (check args struct for more info)
@@ -218,8 +230,14 @@ namespace hyper {
 				if (on) {
 					if (directionForward) {
 						mg.move_velocity(speeds.fwd);
+						if (outputSpeeds) {
+							pros::lcd::print(2, "motor going!!");
+						}
 					} else {
 						mg.move_velocity(speeds.back);
+						if (outputSpeeds) {
+							pros::lcd::print(2, "motor not going :(");
+						}
 					}
 				} else {
 					mg.move_velocity(0);
@@ -1082,6 +1100,8 @@ namespace hyper {
 					pros::E_CONTROLLER_DIGITAL_R1
 				}}) {
 					speeds = {10000, -10000};
+					outputSpeeds = true;
+					mg.set_gearing_all(pros::motor_gearset_e_t::E_MOTOR_GEAR_RED);
 				};
 
 			bool canMove(bool on) override {
@@ -1152,10 +1172,17 @@ namespace hyper {
 			using ArgsType = LadyBrownArgs;
 
 			// Target position to move to (start, halfway, end)
-			vector<double> targets = {0, 100, 200};
+			vector<double> targets = {0, 180, -1};
 
 			BtnManager upBtn;
-			BtnManager downBtn;
+			bool atManualControl = false;
+
+			double limit = 1050;
+
+			Buttons manualBtns = {
+				pros::E_CONTROLLER_DIGITAL_UP,
+				pros::E_CONTROLLER_DIGITAL_DOWN
+			};
 
 			/// @brief Changes the target by the amount specified by the change parameter
 			/// @param change Amount to change the target by
@@ -1178,27 +1205,40 @@ namespace hyper {
 			LadyBrown(LadyBrownArgs args) : 
 				AbstractMG(args.abstractMGArgs),
 				upBtn({args.abstractMGArgs.abstractComponentArgs, {
-					pros::E_CONTROLLER_DIGITAL_UP, {std::bind(incrementTarget, this)}, {}, {} 
-				}}),
-				downBtn({args.abstractMGArgs.abstractComponentArgs, {
-					pros::E_CONTROLLER_DIGITAL_DOWN, {std::bind(decrementTarget, this)}, {}, {}
-				}}) {};
-
-			void btnOpControl() {
-				upBtn.opControl();
-				downBtn.opControl();
-			}
+					pros::E_CONTROLLER_DIGITAL_UP, {[this]() {
+						this->incrementTarget();
+						if (targets[currentTarget] == -1) {
+							atManualControl = true;
+						}
+					}}, {}, {} 
+				}}) {
+					//mg.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+				};
 
 			bool canMove(bool on) override {
 				return on;
 			}
 
 			void opControl() override {
-				btnOpControl();
+				upBtn.opControl();
 
+				// Auto control if not manual controol
+				if (atManualControl) {
+					bool belowLimit = mg.get_position() < limit;
+
+					if (master->get_digital(manualBtns.fwd) && belowLimit) {
+						move(true);
+					} else if (master->get_digital(manualBtns.back)) {
+						move(true, false);
+					} else {
+						move(false);
+					}
+				} else {
+					mg.move_absolute(targets[currentTarget], speeds.fwd);
+				}
 				// TODO: implement moving the lady brown to targets with PID
 			}
-	};
+	}; // class LadyBrown
 
 	/// @brief Class which manages all components
 	class ComponentManager : public AbstractComponent {
@@ -1369,7 +1409,7 @@ namespace hyper {
 
 			void advancedAuton() {
 				// Deposit preload on low wall stake
-				cm->dvt.PIDMove(5);
+				/*cm->dvt.PIDMove(5);
 				pros::lcd::print(2, "Initial phase complete");
 				//cm->conveyer.move(true);
 
@@ -1388,18 +1428,19 @@ namespace hyper {
 				cm->dvt.PIDTurn(180);
 				cm->dvt.PIDMove(20);
 
+				*/
 				// Collect mogo
-				cm->mogoMech.actuate(true);
-				return;
-				cm->dvt.PIDMove(19);
 				cm->mogoMech.actuate(false);
+				//return;
+				cm->dvt.PIDMove(19);
+				//cm->mogoMech.actuate(false);
 
 				// Collect rings
 				cm->dvt.PIDTurn(-70);
-				cm->intake.move(true);
+				cm->conveyer.move(true);
 				cm->dvt.PIDMove(27);
 				pros::delay(500);
-				cm->intake.move(false);
+				cm->conveyer.move(false);
 
 				// Prepare for opcontrol
 				//cm->conveyer.move(false);
@@ -1605,7 +1646,7 @@ namespace hyper {
 		return angle;
 	}
 
-	/// @brief Get all the values of an enum class into a vector
+	/*/// @brief Get all the values of an enum class into a vector
 	template <typename T>
 	vector<T> getAllValues() {
 		vector<T> values;
@@ -1629,7 +1670,7 @@ namespace hyper {
 		for (E value : values) {
 			map[value] = defaultValue;
 		}
-	}
+	}*/
 	// example use case
 	//fillMapWithEnum<pros::controller_digital_e_t, bool>(map);
 } // namespace hyper
