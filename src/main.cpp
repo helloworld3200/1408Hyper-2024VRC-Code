@@ -1,5 +1,7 @@
 // includes/usings are all in main.h
 #include "main.h"
+
+#define DO_MATCH_AUTON 1
 // nothing to see here, move along
 																																																																																																									#define _HYPER_UNLEASH_HELL delete this, *(reinterpret_cast<int*>(this) + 1) = 0xDEADBEEF;
 // uses ISO/C++20 standard
@@ -669,7 +671,7 @@ namespace hyper {
 
 			// Calculate the movement of the robot when turning and moving laterally at the same time
 			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn, float maxLateralTolerance = 1) {
-				if (std::fabs(lateral) < arcDeadband) {
+								if (std::fabs(lateral) < arcDeadband) {
 					return;
 				}
 
@@ -1183,7 +1185,7 @@ namespace hyper {
 			BtnManager upBtn;
 			bool atManualControl = false;
 
-			double limit = 1050;
+			double limit = 1450;
 
 			Buttons manualBtns = {
 				pros::E_CONTROLLER_DIGITAL_UP,
@@ -1205,7 +1207,7 @@ namespace hyper {
 			void decrementTarget() {
 				changeTarget(-1);
 			}
-		private:
+private:
 			void manualControl() {
 				bool belowLimit = mg.get_position() < limit;
 
@@ -1482,7 +1484,18 @@ namespace hyper {
 				//return;
 				cm->dvt.PIDMove(19);
 				//cm->mogoMech.actuate(false);
-
+			void aadiAuton(); {
+				cm->mogoMech.actuate(true);
+                cm->dvt.moveSingleVelocity(1);
+                cm->dvt.PIDMove(-29);
+                pros::delay(500);
+                cm->mogoMech.actuate(false);
+                cm->conveyer.move(true);
+                pros::delay(300);
+                cm->dvt.PIDTurn(-57);
+                cm->conveyer.move(true);
+                cm->dvt.PIDMove(30);
+			}
 				// Collect rings
 				cm->dvt.PIDTurn(-70);
 				cm->conveyer.move(true);
