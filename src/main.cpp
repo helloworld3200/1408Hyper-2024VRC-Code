@@ -1477,7 +1477,8 @@ namespace hyper {
 			void advancedAuton() {
 				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
-				cm->dvt.PIDMove(8.75);
+				pros::delay(2000);
+				cm->dvt.PIDMove(8.8dgdlk);
 				pros::lcd::print(2, "Initial phase complete");
 				pros::delay(500);
 

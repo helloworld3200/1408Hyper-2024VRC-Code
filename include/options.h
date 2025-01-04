@@ -6,7 +6,7 @@
 // Variables (u can change these!!)
 #define MAINLOOP_DELAY_TIME_MS 20
 // Turn on for match auton to be run at the start of opcontrol
-#define MATCH_AUTON_TEST true
+#define MATCH_AUTON_TEST false
 
 #define CURRENT_OPCONTROL mainControl
 
