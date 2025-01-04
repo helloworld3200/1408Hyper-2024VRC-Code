@@ -1,7 +1,6 @@
 // includes/usings are all in main.h
 #include "main.h"
 
-#define DO_MATCH_AUTON 1
 // nothing to see here, move along
 																																																																																																									#define _HYPER_UNLEASH_HELL delete this, *(reinterpret_cast<int*>(this) + 1) = 0xDEADBEEF;
 // uses ISO/C++20 standard
@@ -617,12 +616,13 @@ namespace hyper {
 
 			using ArgsType = DrivetrainArgs;
 
-			/// @brief Struct for PID options (self-explanatory)
+			/// @brief Struct for PID options (self-explanatory - timeLimit in MS)
 			struct PIDOptions {
 				double kP;
 				double kI;
 				double kD;
 				double errorThreshold;
+				float timeLimit;
 			};
 
 			DriveControlSpeed driveControlSpeed = {};
@@ -640,7 +640,8 @@ namespace hyper {
 
 			float maxVoltage = 12000;
 
-			double inchesPerTick = 0.025525;
+			//double inchesPerTick = 0.025525;
+			double inchesPerTick = 0.0127625;
 
 			uint32_t moveDelayMs = 2;
 
@@ -890,7 +891,7 @@ namespace hyper {
 			/// @param angle Angle to move to (PASS IN THE RANGE OF -180 TO 180 for left and right)
 			// TODO: Tuning required
 			void PIDTurn(double angle, PIDOptions options = {
-				0.3, 0.0, 0.7, 1
+				0.3, 0.0, 0.7, 1, 6000
 			}) {
 				imu.tare();
 				angle = naiveNormaliseAngle(angle);
@@ -912,6 +913,9 @@ namespace hyper {
 				float trueHeading = 0;
 
 				float maxThreshold = 180 - options.errorThreshold;
+
+				float maxCycles = options.timeLimit / moveDelayMs;
+				float cycles = 0;
 
 				if (std::fabs(angle) >= 180) {
 					turn180 = true;
@@ -958,7 +962,13 @@ namespace hyper {
 						pros::lcd::print(4, "PIDTurn Out too low");
 					}
 
+					if (cycles >= maxCycles) {
+						pros::lcd::print(4, "PIDTurn Time limit reached");
+						break;
+					}
+
 					pros::delay(moveDelayMs);
+					cycles++;
 				}
 
 				pros::lcd::print(2, "PIDTurn End");
@@ -973,7 +983,7 @@ namespace hyper {
 			/// @param pos Position to move to in inches (use negative for backward)
 			// TODO: Tuning required
 			void PIDMove(double pos, PIDOptions options = {
-				0.07, 0.0, 0.4, 3
+				0.15, 0.0, 0.6, 3, 6000
 			}) {
 				// TODO: Consider adding odometry wheels as the current motor encoders
 				// can be unreliable for long distances or just dont tare the motors
@@ -988,6 +998,9 @@ namespace hyper {
 				float derivative = 0;
 				float integral = 0;
 				float out = 0;
+
+				float maxCycles = options.timeLimit / moveDelayMs;
+				float cycles = 0;
 
 				// with moving you just wanna move both MGs at the same speed
 
@@ -1018,7 +1031,13 @@ namespace hyper {
 					pros::lcd::print(5, ("PIDMove Out: " + std::to_string(out)).c_str());
 					pros::lcd::print(7, ("PIDMove Error: " + std::to_string(error)).c_str());
 
+					if (cycles >= maxCycles) {
+						pros::lcd::print(4, "PIDMove Time limit reached");
+						break;
+					}
+
 					pros::delay(moveDelayMs);
+					cycles++;
 				}
 
 				moveStop();
@@ -1185,7 +1204,7 @@ namespace hyper {
 			BtnManager upBtn;
 			bool atManualControl = false;
 
-			double limit = 1450;
+			double limit = 10000;
 
 			Buttons manualBtns = {
 				pros::E_CONTROLLER_DIGITAL_UP,
@@ -1207,9 +1226,10 @@ namespace hyper {
 			void decrementTarget() {
 				changeTarget(-1);
 			}
-private:
+		private:
 			void manualControl() {
-				bool belowLimit = mg.get_position() < limit;
+				//bool belowLimit = mg.get_position() < limit;
+				bool belowLimit = true;
 
 				if (master->get_digital(manualBtns.fwd) && belowLimit) {
 					move(true);
@@ -1268,11 +1288,10 @@ private:
 			using ArgsType = DoinkerArgs;
 
 			BtnManager actuateBtn;
-			bool state = false;
 
 			void handleBtn() {
-				state = !state;
-				actuate(state);
+				actuate(!getEngaged());
+				//master->set_text(1, 0, "Doinker state: " + std::to_string(state));
 			}
 
 			/// @brief Constructor for doinker object
@@ -1282,9 +1301,7 @@ private:
 				actuateBtn({args.abstractMechArgs.abstractComponentArgs, {
 					pros::E_CONTROLLER_DIGITAL_X, {std::bind(&Doinker::handleBtn, this)}, {}, {}
 				}
-				}) {
-					actuate(state);
-				};
+				}) {};
 
 			void opControl() override {
 				actuateBtn.opControl();
@@ -1347,7 +1364,8 @@ private:
 						&dvt,
 						&mogoMech,
 						&conveyer,
-						&ladyBrown
+						&ladyBrown,
+						&doinker
 					};
 				};
 
@@ -1445,6 +1463,7 @@ private:
 				// 72 = 3 tiles = 3 feet
 				// 96 = 4 tiles = 4 feet
 				cm->dvt.PIDMove(-24);
+				cm->doinker.actuate(true);
 			}
 
 			void testIMUAuton() {
@@ -1458,42 +1477,56 @@ private:
 			}
 
 			void advancedAuton() {
+				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
-				cm->dvt.PIDMove(5);
+				cm->dvt.PIDMove(10);
 				pros::lcd::print(2, "Initial phase complete");
-				//cm->conveyer.move(true);
 
 				// Move to mogo
-				// CURSED LINE!!!!
-				//cm->dvt.PIDTurn(-30);
+				cm->dvt.PIDTurn(-30);
+				cm->dvt.moveDelay(1600, false);
+				cm->conveyer.move(true);
+				pros::delay(1000);
 
-				cm->dvt.PIDTurn(-50);
-				
-				cm->dvt.moveDelay(1000, false);
+				// stop it from hitting the wall
+				cm->dvt.PIDMove(8);
+				cm->conveyer.move(false);
 
 				cm->dvt.PIDTurn(30);
-				
-				// Turn halfway through going to mogo
-				cm->dvt.PIDTurn(23);
-				cm->dvt.PIDTurn(180);
 				cm->dvt.PIDMove(20);
 
-				
-				// Collect mogo
-				cm->mogoMech.actuate(false);
+				// Turn halfway through going to mogo
+				// fix to turn 180 degrees
 				//return;
-				cm->dvt.PIDMove(19);
-				//cm->mogoMech.actuate(false);
+				// for some reason 90 degrees has become 180 degrees for some reason
+				cm->dvt.PIDTurn(90);
+				//dvt.PIDTurn(90);
 
-				// Collect rings
-				cm->dvt.PIDTurn(-70);
+				//return;
+
+				pros::delay(200);
+				cm->dvt.PIDMove(-8);
+
+				// Collect mogo
+				cm->mogoMech.actuate(true);
+				pros::delay(500);
+
+				//return;
+				// Turn, move and collect rings
+				cm->dvt.PIDTurn(-55);
 				cm->conveyer.move(true);
-				cm->dvt.PIDMove(27);
+				cm->dvt.PIDMove(25);
 				pros::delay(500);
 				cm->conveyer.move(false);
 
 				// Prepare for opcontrol
 				//cm->conveyer.move(false);
+
+				// OPTIONAL: Turn to face the wall
+				/*
+				cm->dvt.PIDTurn(150);
+				cm->dvt.PIDMove(70);
+				*/
 			}
 
 			void aadiAuton() {

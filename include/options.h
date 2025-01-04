@@ -17,7 +17,7 @@
 #define LIFT_MECH_PORT 'B'
 
 // Digital sensor port for pneumatics doinker
-#define DOINKER_PORT 'C'
+#define DOINKER_PORT 'B'
 
 // Ultrasound (1st is ping port, 2nd is echo port)
 #define BACK_ULTRA_PORTS {'A', 'B'}
@@ -39,7 +39,7 @@
 #define IMU_PORT 12
 
 // Turn on/off auton and opcontrol
-#define DO_MATCH_AUTON false
+#define DO_MATCH_AUTON true
 #define DO_SKILLS_AUTON false
 #define DO_OP_CONTROL true
 
