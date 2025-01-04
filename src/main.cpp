@@ -18,9 +18,7 @@
 // instead, put the class name in front of it (e.g. DrivetrainArgs) for CLARITY
 // in derived functions & then for factories just do using e.g. using ArgsType = DrivetrainArgs;
 
-// TODO: refactor into separate files
-
-// TODO: take some of the legacy code into a diff file
+// TODO: seperate PID functions into a separate class for cleanliness
 
 /// @brief Hyper namespace for all custom classes and functions
 namespace hyper {
@@ -672,7 +670,7 @@ namespace hyper {
 
 			// Calculate the movement of the robot when turning and moving laterally at the same time
 			void calculateArcMovement(TurnCoefficients& turnCoeffs, float lateral, float turn, float maxLateralTolerance = 1) {
-								if (std::fabs(lateral) < arcDeadband) {
+				if (std::fabs(lateral) < arcDeadband) {
 					return;
 				}
 
@@ -1479,21 +1477,23 @@ namespace hyper {
 			void advancedAuton() {
 				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
-				cm->dvt.PIDMove(10);
+				cm->dvt.PIDMove(8.75);
 				pros::lcd::print(2, "Initial phase complete");
+				pros::delay(500);
 
 				// Move to mogo
-				cm->dvt.PIDTurn(-30);
+				cm->dvt.PIDTurn(-90);
 				cm->dvt.moveDelay(1600, false);
 				cm->conveyer.move(true);
 				pros::delay(1000);
 
 				// stop it from hitting the wall
-				cm->dvt.PIDMove(8);
 				cm->conveyer.move(false);
+				cm->dvt.PIDMove(8);
 
 				cm->dvt.PIDTurn(30);
-				cm->dvt.PIDMove(20);
+				//cm->dvt.PIDMove(20);
+				// uncommnet later
 
 				// Turn halfway through going to mogo
 				// fix to turn 180 degrees
@@ -1505,7 +1505,8 @@ namespace hyper {
 				//return;
 
 				pros::delay(200);
-				cm->dvt.PIDMove(-8);
+				//cm->dvt.PIDMove(-8);
+				// uncommnet later
 
 				// Collect mogo
 				cm->mogoMech.actuate(true);
@@ -1515,7 +1516,8 @@ namespace hyper {
 				// Turn, move and collect rings
 				cm->dvt.PIDTurn(-55);
 				cm->conveyer.move(true);
-				cm->dvt.PIDMove(25);
+				// uncommnet later
+				//cm->dvt.PIDMove(25);
 				pros::delay(500);
 				cm->conveyer.move(false);
 
@@ -1864,7 +1866,10 @@ void pneumaticstestcontrol () {
 void mainControl() {
 	pros::lcd::set_text(0, "> 1408Hyper mainControl ready");
 
-	if (MATCH_AUTON_TEST) {
+	bool inComp = pros::competition::is_connected();
+
+	// competition auton test safeguard
+	if (MATCH_AUTON_TEST && !inComp) {
 		autonomous();
 	}
 
