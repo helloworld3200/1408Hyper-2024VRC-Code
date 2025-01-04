@@ -1478,7 +1478,7 @@ namespace hyper {
 				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
 				pros::delay(2000);
-				cm->dvt.PIDMove(8.8dgdlk);
+				cm->dvt.PIDMove(8.8);
 				pros::lcd::print(2, "Initial phase complete");
 				pros::delay(500);
 
