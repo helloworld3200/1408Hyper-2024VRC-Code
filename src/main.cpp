@@ -724,6 +724,13 @@ namespace hyper {
 				right_mg.move(right_voltage);
 			}
 
+			/// @brief Sets the brake mode for each motor group
+			void setBrakeModes(pros::motor_brake_mode_e_t mode) {
+				left_mg.set_brake_mode(mode);
+				right_mg.set_brake_mode(mode);
+			}
+				
+
 			/// @brief Fallback control that DriveControlMode switch statement defaults to.
 			void fallbackControl() {
 				arcadeControl();
@@ -1475,6 +1482,8 @@ namespace hyper {
 			}
 
 			void advancedAuton() {
+				cm->dvt.setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
+
 				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
 				pros::delay(2000);
