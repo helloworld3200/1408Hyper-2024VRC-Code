@@ -677,8 +677,8 @@ namespace hyper {
 
 				// 0-1 range of percentage of lateral movement against max possible lateral movement
 				float lateralCompensation = lateral / driveControlSpeed.getMaxLateral();
-				// Decrease the turn speed when moving laterally
-				float turnDecrease = turn * driveControlSpeed.arcSpeed * (1 - lateralCompensation);
+				// Decrease the turn speed when moving laterally (higher turn should be higher turnDecrease)
+				float turnDecrease = turn * (1 - (lateralCompensation * driveControlSpeed.arcSpeed));
 
 				if (turn > 0) { // Turning to right so we decrease the left MG
 					turnCoeffs.left -= turnDecrease;
