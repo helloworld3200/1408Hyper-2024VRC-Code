@@ -79,7 +79,8 @@ namespace hyper {
 
 			virtual void opControl() = 0;
 			virtual void auton() = 0;
-			virtual void skills() = 0;
+			virtual void skillsPrep() = 0;
+			virtual void skillsAuton() = 0;
 	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
@@ -725,11 +726,11 @@ namespace hyper {
 			}
 
 			/// @brief Sets the brake mode for each motor group
+			/// @param mode Brake mode to set the motors toS
 			void setBrakeModes(pros::motor_brake_mode_e_t mode) {
 				left_mg.set_brake_mode(mode);
 				right_mg.set_brake_mode(mode);
 			}
-				
 
 			/// @brief Fallback control that DriveControlMode switch statement defaults to.
 			void fallbackControl() {
@@ -1482,7 +1483,7 @@ namespace hyper {
 			}
 
 			void advancedAuton() {
-				cm->dvt.setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
+				
 
 				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
@@ -1553,6 +1554,15 @@ namespace hyper {
                 cm->conveyer.move(true);
                 cm->dvt.PIDMove(30);
 			}
+
+			void preRun() {
+				cm->dvt.setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
+			}
+
+			void postRun() {
+				cm->dvt.setBrakeModes(pros::E_MOTOR_BRAKE_COAST);
+				cm->mogoMech.actuate(false);
+			}
 		protected:
 		public:
 			/// @brief Args for match auton object
@@ -1570,6 +1580,8 @@ namespace hyper {
 			void run() override {
 				// just comment out the auton function u dont want
 
+				preRun();
+
 				//defaultAuton();
 				//calcCoefficientAuton();
 				//calcTurnAuton();
@@ -1577,6 +1589,8 @@ namespace hyper {
 				//linedAuton();
 				//aadiAuton();
 				advancedAuton();
+
+				postRun();
 			}
 	}; // class MatchAuton
 
@@ -1642,16 +1656,16 @@ namespace hyper {
 
 			ComponentManager cm;
 
-			MatchAuton matchAuton;
-			SkillsAuton skillsAuton;
+			MatchAuton matchAutonManager;
+			SkillsAuton skillsAutonManager;
 
 			/// @brief Creates chassis object
 			/// @param args Args for chassis object (check args struct for more info)
 			Chassis(ChassisArgs args) : 
 				AbstractChassis(),
 				cm({this, args.cmUserArgs}),
-				matchAuton({&cm}),
-				skillsAuton({&cm}) {};
+				matchAutonManager({&cm}),
+				skillsAutonManager({&cm}) {};
 
 			/// @brief Runs the opcontrol functions for each component
 			void opControl() override {
@@ -1661,12 +1675,18 @@ namespace hyper {
 			/// @brief Auton function for the chassis
 			// 1000 = 70cm
 			void auton() override {
-				matchAuton.run();
+				matchAutonManager.run();
 			}
 
-			/// @brief Skills function for the chassis
-			void skills() override {
-				skillsAuton.run();
+			/// @brief Skills auton function for the chassis
+			void skillsAuton() override {
+				skillsAutonManager.run();
+			}
+
+			/// @brief Skills preparation for opcontrol on the chassis
+			void skillsPrep() override {
+				cm.conveyer.move(true);
+				cm.mogoMech.actuate(true);
 			}
 	}; // class Chassis
 
@@ -1883,8 +1903,12 @@ void mainControl() {
 		autonomous();
 	}
 
+	if (DO_SKILLS_PREP) {
+		currentChassis->skillsPrep();
+	}
+
 	if (DO_SKILLS_AUTON) {
-		currentChassis->skills();
+		currentChassis->skillsAuton();
 	}
 
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
