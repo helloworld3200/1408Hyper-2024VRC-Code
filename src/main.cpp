@@ -1397,6 +1397,8 @@ namespace hyper {
 			Conveyer conveyer;
 			LadyBrown ladyBrown;
 
+			MogoStopper mogoStopper;
+
 			// All components are stored in this vector
 			vector<AbstractComponent*> components;
 
@@ -1411,6 +1413,7 @@ namespace hyper {
 				char doinkerPort;
 				MGPorts conveyerPorts;
 				MGPorts ladyBrownPorts;
+				std::int8_t mogoStopperPort;
 			};
 
 			/// @brief Args for component manager object
@@ -1431,15 +1434,16 @@ namespace hyper {
 				mogoMech(factory.create<MogoMech>(args.user.mogoMechPort)),
 				conveyer(factory.create<Conveyer>(args.user.conveyerPorts)),
 				ladyBrown(factory.create<LadyBrown>(args.user.ladyBrownPorts)),
-				doinker(factory.create<Doinker>(args.user.doinkerPort)) {
-					// Add component pointers to vector
+				doinker(factory.create<Doinker>(args.user.doinkerPort)),
+				mogoStopper(factory.create<MogoStopper>(args.user.mogoStopperPort)) {					// Add component pointers to vector
 					// MUST BE DONE AFTER INITIALISATION not BEFORE because of pointer issues
 					components = {
 						&dvt,
 						&mogoMech,
 						&conveyer,
 						&ladyBrown,
-						&doinker
+						&doinker,
+						&mogoStopper
 					};
 				};
 
@@ -1887,7 +1891,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS}});
+		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS, MOGO_STOPPER_PORT}});
 	
 	currentChassis = &defaultChassis;
 }
