@@ -1188,6 +1188,74 @@ namespace hyper {
 			}
 	}; // class Intake
 
+	class MogoStopper : public AbstractComponent {
+		private:
+			pros::Optical sensor;
+			MogoMech* mogoMech;
+			BtnManager btn;
+
+			bool doActuate = false;			
+		protected:
+		public:
+			pros::c::optical_rgb_s_t mogoRGB = {233, 255, 8};
+			float tolerance = 5;
+		private:
+			bool channelWithinTolerance(const float& channel, const float& target) {
+				return std::fabs(channel - target) <= tolerance;
+			}
+
+			bool rgbIsMogo(const pros::c::optical_rgb_s_t& rgb) {
+				bool redWithinTolerance = channelWithinTolerance(rgb.red, mogoRGB.red);
+				bool greenWithinTolerance = channelWithinTolerance(rgb.green, mogoRGB.green);
+				bool blueWithinTolerance = channelWithinTolerance(rgb.blue, mogoRGB.blue);
+
+				bool withinTolerance = redWithinTolerance && greenWithinTolerance && blueWithinTolerance;
+
+				return withinTolerance;
+			}
+		public:
+
+			/// @brief Args for mogo stopper object
+			/// @param abstractComponentArgs Args for AbstractComponent object
+			/// @param stopperPort Port for stopper motor
+			struct MogoStopperArgs {
+				AbstractComponentArgs abstractComponentArgs;
+				std::int8_t sensorPort;
+				MogoMech* mogoMech;
+			};
+
+			using ArgsType = MogoStopperArgs;
+
+			void toggleActuate() {
+				doActuate = !doActuate;
+			}
+
+			/// @brief Constructor for mogo stopper object
+			/// @param args Args for mogo stopper object (see args struct for more info)
+			MogoStopper(MogoStopperArgs args) : 
+				AbstractComponent(args.abstractComponentArgs),
+				sensor(args.sensorPort),
+				mogoMech(args.mogoMech),
+				btn({args.abstractComponentArgs, {
+					pros::E_CONTROLLER_DIGITAL_B, {std::bind(&MogoStopper::toggleActuate, this)}, {}, {}
+				}}) {};
+			
+			///#DFFF08 - Mobile goal hex code
+			///R-233 G-255 B-8 Mobile goal RGB
+
+			void opControl() override {
+				if (!doActuate) {
+					return;
+				}
+
+				pros::c::optical_rgb_s_t rgb = sensor.get_rgb();
+
+				if (rgbIsMogo(rgb)) {
+					mogoMech->actuate(true);
+				}
+			}
+	}; // class MogoStopper
+
 	/// @brief Class which manages the Lady Brown mechanism
 	class LadyBrown : public AbstractMG {
 		private:

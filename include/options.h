@@ -31,8 +31,11 @@
 // Motor ports for the lady brown mech
 #define LADY_BROWN_PORTS {1}
 
-// Port for the color sensor
-#define COLOR_SENSOR_PORT 5
+// Port for the distance sensor
+#define DIST_SENSOR_PORT 16
+
+// Port for the mogo sensor
+#define MOGO_SENSOR_PORT 9
 
 // Ports for telemetry
 // IMU
