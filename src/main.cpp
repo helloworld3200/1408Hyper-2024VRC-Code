@@ -118,6 +118,9 @@ namespace hyper {
 
 			virtual void opControl() = 0;
 
+			virtual void postAuton() {}
+			virtual void skillsPrep() {}
+
 			virtual ~AbstractComponent() = default;
 	}; // class ChassisComponent
 
@@ -648,6 +651,13 @@ namespace hyper {
 
 			float arcDeadband = 5;
 
+			/// @brief Sets the brake mode for each motor group
+			/// @param mode Brake mode to set the motors toS
+			void setBrakeModes(pros::motor_brake_mode_e_t mode) {
+				left_mg.set_brake_mode(mode);
+				right_mg.set_brake_mode(mode);
+			}
+
 			Drivetrain(DrivetrainArgs args) : 
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
@@ -655,6 +665,7 @@ namespace hyper {
 				imu(args.ports.imuPort) {
 					setDriveControlMode();
 					calibrateIMU();
+					setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
 				};
 		private:
 			void prepareArcadeLateral(float& lateral) {
@@ -725,11 +736,8 @@ namespace hyper {
 				right_mg.move(right_voltage);
 			}
 
-			/// @brief Sets the brake mode for each motor group
-			/// @param mode Brake mode to set the motors toS
-			void setBrakeModes(pros::motor_brake_mode_e_t mode) {
-				left_mg.set_brake_mode(mode);
-				right_mg.set_brake_mode(mode);
+			void postAuton() override {
+				setBrakeModes(pros::E_MOTOR_BRAKE_COAST);
 			}
 
 			/// @brief Fallback control that DriveControlMode switch statement defaults to.
@@ -1108,6 +1116,14 @@ namespace hyper {
 					lastPressed = false;
 				}
 			}
+
+			void postAuton() override {
+				actuate(false);
+			}
+
+			void skillsPrep() override {
+				actuate(true);
+			}
 	}; // class MogoMech
 
 	class Conveyer : public AbstractMG {
@@ -1152,6 +1168,10 @@ namespace hyper {
 
 			void opControl() override {
 				toggle.opControl();
+			}
+
+			void skillsPrep() override {
+				move(true);
 			}
 	}; // class Conveyer
 
@@ -1453,6 +1473,18 @@ namespace hyper {
 					component->opControl();
 				}
 			}
+
+			void skillsPrep() override {
+				for (AbstractComponent* component : components) {
+					component->skillsPrep();
+				}
+			}
+
+			void postAuton() override {
+				for (AbstractComponent* component : components) {
+					component->postAuton();
+				}
+			}
 	}; // class ComponentManager
 
 	/// @brief Abstract class for auton e.g. match or skills autonomous
@@ -1555,9 +1587,6 @@ namespace hyper {
 			}
 
 			void advancedAuton() {
-				
-
-				// TODO: add timer for PID functions to prevent infinite loops
 				// Deposit preload on low wall stake
 				pros::delay(2000);
 				cm->dvt.PIDMove(8.8);
@@ -1652,8 +1681,6 @@ namespace hyper {
 			void run() override {
 				// just comment out the auton function u dont want
 
-				preRun();
-
 				//defaultAuton();
 				//calcCoefficientAuton();
 				//calcTurnAuton();
@@ -1662,7 +1689,7 @@ namespace hyper {
 				//aadiAuton();
 				advancedAuton();
 
-				postRun();
+				cm->postAuton();
 			}
 	}; // class MatchAuton
 
@@ -1708,7 +1735,6 @@ namespace hyper {
 			SkillsAuton(SkillsAutonArgs args) : 
 				AbstractAuton(args.autonArgs) {};
 
-			// TODO: Implement
 			void run() override {
 				sector1();
 				sector2();
@@ -1757,8 +1783,9 @@ namespace hyper {
 
 			/// @brief Skills preparation for opcontrol on the chassis
 			void skillsPrep() override {
-				cm.conveyer.move(true);
-				cm.mogoMech.actuate(true);
+				// We need to run postAuton() first because these are what would prep for opcontrol normally
+				cm.postAuton();
+				cm.skillsPrep();
 			}
 	}; // class Chassis
 
@@ -1988,14 +2015,8 @@ void mainControl() {
 	bool opControlRunning = DO_OP_CONTROL;
 	// Chassis control loop
 	while (opControlRunning) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-						 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-						 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0); // Prints status of the emulated screen LCDs
-
 		// Chassis opcontrol
 		currentChassis->opControl();
-
-
 
 		pros::delay(MAINLOOP_DELAY_TIME_MS);
 	}
@@ -2028,4 +2049,4 @@ void opcontrol() {
 // i like c++ the most
 
 // anti quick make nothing comment thingy
-// aa
+// aaa
