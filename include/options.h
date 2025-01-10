@@ -19,8 +19,10 @@
 // Digital sensor port for pneumatics doinker
 #define DOINKER_PORT 'B'
 
+#define ODOM_ENC_PORTS {'C', 'D'}
+
 // Ultrasound (1st is ping port, 2nd is echo port)
-#define BACK_ULTRA_PORTS {'A', 'B'}
+#define BACK_ULTRA_PORTS {'E', 'F'}
 
 // Motor ports for the conveyer (real is 10 but use 11 to just turn it off for debugging)
 #define CONVEYER_PORTS {4, -10}

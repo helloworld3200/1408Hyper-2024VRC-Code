@@ -546,6 +546,8 @@ namespace hyper {
 
 			pros::IMU imu;
 
+			pros::adi::Encoder odomEnc;
+
 			DriveControlMode driveControlMode;
 
 			std::function<void()> driveControl;
@@ -607,6 +609,7 @@ namespace hyper {
 				vector<std::int8_t> left;
 				vector<std::int8_t> right;
 				std::int8_t imuPort;
+				char odomPorts[2];
 			};
 
 			/// @brief Args for drivetrain object
@@ -642,8 +645,12 @@ namespace hyper {
 
 			float maxVoltage = 12000;
 
-			//double inchesPerTick = 0.025525;
+			// Motor builtin encoder inchesPerTick
 			double inchesPerTick = 0.0127625;
+
+			// Odom wheel encoder inchesPerTick
+			// TODO: Calculate this
+			double odomIPT = 0.0;
 
 			uint32_t moveDelayMs = 2;
 
@@ -662,7 +669,8 @@ namespace hyper {
 				AbstractComponent(args.abstractComponentArgs),
 				left_mg(args.ports.left),
 				right_mg(args.ports.right),
-				imu(args.ports.imuPort) {
+				imu(args.ports.imuPort),
+				odomEnc(args.ports.odomPorts[0], args.ports.odomPorts[1]) {
 					setDriveControlMode();
 					calibrateIMU();
 					setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
@@ -1917,7 +1925,7 @@ hyper::AbstractChassis* currentChassis;
 
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
-		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
+		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT, ODOM_ENC_PORTS}, 
 		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS, MOGO_SENSOR_PORT}});
 	
 	currentChassis = &defaultChassis;
