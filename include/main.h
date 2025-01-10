@@ -57,6 +57,10 @@
 #include <cerrno>
 // Standard library
 #include <cstdlib>
+// Mapping dictionary
+#include <map>
+// Type traits
+#include <type_traits>
 
 // fmt is gone
 
@@ -68,9 +72,20 @@
 
 // TODO: Refactor our code into different files--main.cpp is getting too big
 
-// Using declarations
+// Using declarations to shorten common types
 using std::vector;
 using std::string;
+using std::map;
+
+using std::unique_ptr;
+using std::shared_ptr;
+
+// Shorthands for port types & other type aliases
+using MGPorts = vector<std::int8_t>;
+using AnalogPort = char;
+
+using VoidFunc = std::function<void()>;
+using VoidFuncVector = vector<VoidFunc>;
 
 /**
  * If you find doing pros::Motor() to be tedious and you'd prefer just to do
