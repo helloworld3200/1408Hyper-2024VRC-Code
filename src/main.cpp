@@ -1992,7 +1992,7 @@ void pneumaticstestcontrol () {
 	}
 }
 
-void mainControl() {
+void preControl() {
 	pros::lcd::set_text(0, "> 1408Hyper mainControl ready");
 
 	bool inComp = pros::competition::is_connected();
@@ -2009,9 +2009,9 @@ void mainControl() {
 	if (DO_SKILLS_AUTON) {
 		currentChassis->skillsAuton();
 	}
+}
 
-	pros::Controller controller(pros::E_CONTROLLER_MASTER);
-
+void mainloopControl() {
 	bool opControlRunning = DO_OP_CONTROL;
 	// Chassis control loop
 	while (opControlRunning) {
@@ -2020,6 +2020,12 @@ void mainControl() {
 
 		pros::delay(MAINLOOP_DELAY_TIME_MS);
 	}
+}
+
+void mainControl() {
+	preControl();
+
+	mainloopControl();
 }
 /**
  * Runs the operator control code. This function will be started in its own task
