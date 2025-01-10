@@ -1891,7 +1891,7 @@ hyper::AbstractChassis* currentChassis;
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
 		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT}, 
-		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS, MOGO_STOPPER_PORT}});
+		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS, MOGO_SENSOR_PORT}});
 	
 	currentChassis = &defaultChassis;
 }
