@@ -37,7 +37,12 @@
 #define DIST_SENSOR_PORT 16
 
 // Port for the mogo sensor
-#define MOGO_SENSOR_PORT 9
+#define MOGO_SENSOR_PORT 17
+
+#define LADY_BROWN_ROT_SENSOR_PORT 9
+
+//Port for the GPS Sensor
+#define GPS_SENSOR_PORT 2
 
 // Ports for telemetry
 // IMU
@@ -46,6 +51,7 @@
 // Turn on/off auton and opcontrol
 #define DO_MATCH_AUTON true
 #define DO_SKILLS_PREP true
+#define DO_POST_AUTON true
 #define DO_SKILLS_AUTON false
 #define DO_OP_CONTROL true
 

@@ -81,6 +81,7 @@ namespace hyper {
 			virtual void auton() = 0;
 			virtual void skillsPrep() = 0;
 			virtual void skillsAuton() = 0;
+			virtual void postAuton() = 0;
 	}; // class AbstractChassis
 
 	/// @brief Class for components of the chassis to derive from
@@ -545,8 +546,8 @@ namespace hyper {
 			pros::MotorGroup right_mg;
 
 			pros::IMU imu;
-
 			pros::adi::Encoder odomEnc;
+			pros::Gps gps;
 
 			DriveControlMode driveControlMode;
 
@@ -610,6 +611,7 @@ namespace hyper {
 				vector<std::int8_t> right;
 				std::int8_t imuPort;
 				char odomPorts[2];
+				std::int8_t gpsPort;
 			};
 
 			/// @brief Args for drivetrain object
@@ -670,10 +672,11 @@ namespace hyper {
 				left_mg(args.ports.left),
 				right_mg(args.ports.right),
 				imu(args.ports.imuPort),
-				odomEnc(args.ports.odomPorts[0], args.ports.odomPorts[1]) {
+				odomEnc(args.ports.odomPorts[0], args.ports.odomPorts[1]),
+				gps(args.ports.gpsPort, -0.4, 0, 180) {
 					setDriveControlMode();
 					calibrateIMU();
-					setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
+					//setBrakeModes(pros::E_MOTOR_BRAKE_HOLD);
 				};
 		private:
 			void prepareArcadeLateral(float& lateral) {
@@ -697,7 +700,7 @@ namespace hyper {
 				// 0-1 range of percentage of lateral movement against max possible lateral movement
 				float lateralCompensation = lateral / driveControlSpeed.getMaxLateral();
 				// Decrease the turn speed when moving laterally (higher turn should be higher turnDecrease)
-				float turnDecrease = turn * lateralCompensation * driveControlSpeed.arcSpeed;
+				float turnDecrease = -1 * turn * lateralCompensation * driveControlSpeed.arcSpeed;
 
 				if (turn > 0) { // Turning to right so we decrease the left MG
 					turnCoeffs.left -= turnDecrease;
@@ -705,8 +708,8 @@ namespace hyper {
 					turnCoeffs.right -= turnDecrease;
 				}
 
-				pros::lcd::print(4, ("Left Turn Coef: " + std::to_string(turnCoeffs.left)).c_str());
-				pros::lcd::print(5, ("Right Turn Coef: " + std::to_string(turnCoeffs.right)).c_str());
+				//pros::lcd::print(5, ("Left Turn Coef + turnDecrease: " + ", " + std::to_string(turnDecrease)).c_str());
+				pros::lcd::print(6, ("Right Turn Coef: " + std::to_string(turnCoeffs.right)).c_str());
 			}
 
 			TurnCoefficients calculateArcadeTurns(float turn, float lateral) {
@@ -738,7 +741,7 @@ namespace hyper {
 				std::int32_t left_voltage = prepareMoveVoltage(lateral - turnCoeffs.left);
 				std::int32_t right_voltage = prepareMoveVoltage(lateral + turnCoeffs.right);
 
-				//pros::lcd::print(4, ("LEFT/RIGHT: " + std::to_string(master->get_analog(ANALOG_LEFT_Y)) + ", " + std::to_string(master->get_analog(ANALOG_RIGHT_X)))).c_str();
+				pros::lcd::print(7, ("LEFT/RIGHT: " + std::to_string(left_voltage) + ", " + std::to_string(right_voltage)).c_str());
 
 				left_mg.move(left_voltage);
 				right_mg.move(right_voltage);
@@ -1065,6 +1068,78 @@ namespace hyper {
 				moveStop();
 			}
 
+			/// @brief Move to a specific position using PID with GPS
+			/// @param pos Position to move to in inches (use negative for backward)
+			// TODO: Tuning required
+			// direction bool is for x, invert for y
+			void PIDGps(double pos, PIDOptions options = {
+				0.15, 0.0, 0.6, 3, 6000
+			}, bool direction = true) {
+				pos /= inchesPerTick;
+				pos *= -1;
+
+				float error = pos;
+				float motorPos = 0;
+				float lastError = 0;
+				float derivative = 0;
+				float integral = 0;
+				float out = 0;
+
+				float maxCycles = options.timeLimit / moveDelayMs;
+				float cycles = 0;
+
+				if (direction) {
+					pos += gps.get_position_y();
+				} else {
+					pos += gps.get_position_x();
+				}
+
+				// with moving you just wanna move both MGs at the same speed
+
+				while (true) {
+					// get avg error
+					if (direction) {
+						motorPos = gps.get_position_y();
+					} else {
+						motorPos = gps.get_position_x();
+					}
+
+					error = pos - motorPos;
+
+					integral += error;
+					// Anti windup
+					if (std::fabs(error) < options.errorThreshold) {
+						integral = 0;
+					}
+
+					derivative = error - lastError;
+					out = (options.kP * error) + (options.kI * integral) + (options.kD * derivative);
+					lastError = error;
+
+					out *= 75; // convert to mV
+					out = std::clamp(out, -maxVoltage, maxVoltage);
+					moveSingleVoltage(out);
+
+					if (std::fabs(error) <= options.errorThreshold) {
+						break;
+					}
+
+					pros::lcd::print(4, ("PIDMove Motor Pos: " + std::to_string(motorPos)).c_str());
+					pros::lcd::print(5, ("PIDMove Out: " + std::to_string(out)).c_str());
+					pros::lcd::print(7, ("PIDMove Error: " + std::to_string(error)).c_str());
+
+					if (cycles >= maxCycles) {
+						pros::lcd::print(4, "PIDMove Time limit reached");
+						break;
+					}
+
+					pros::delay(moveDelayMs);
+					cycles++;
+				}
+
+				moveStop();
+			}	
+
 			/// @brief Gets the left motor group
 			pros::MotorGroup& getLeftMotorGroup() {
 				return left_mg;
@@ -1296,12 +1371,15 @@ namespace hyper {
 			struct LadyBrownArgs {
 				AbstractMGArgs abstractMGArgs;
 				MGPorts ladyBrownPorts;
+				std::int8_t sensorPort;
 			};
 
 			using ArgsType = LadyBrownArgs;
 
 			// Target position to move to (start, halfway, end)
 			vector<double> targets = {0, 180, -1};
+
+			pros::Rotation sensor;
 
 			BtnManager upBtn;
 			bool atManualControl = false;
@@ -1330,8 +1408,8 @@ namespace hyper {
 			}
 		private:
 			void manualControl() {
-				//bool belowLimit = mg.get_position() < limit;
-				bool belowLimit = true;
+				bool belowLimit = sensor.get_position() < limit;
+				//bool belowLimit = true;
 
 				if (master->get_digital(manualBtns.fwd) && belowLimit) {
 					move(true);
@@ -1356,8 +1434,10 @@ namespace hyper {
 				AbstractMG(args.abstractMGArgs),
 				upBtn({args.abstractMGArgs.abstractComponentArgs, {
 					pros::E_CONTROLLER_DIGITAL_UP, {std::bind(&LadyBrown::upBtnControl, this)}, {}, {} 
-				}}) {
+				}}),
+				sensor(args.sensorPort) {
 					mg.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+					sensor.reset();
 				};
 
 			bool canMove(bool on) override {
@@ -1377,6 +1457,7 @@ namespace hyper {
 			}
 	}; // class LadyBrown
 
+	
 	class Doinker : public AbstractMech {
 		private:
 		protected:
@@ -1651,6 +1732,10 @@ namespace hyper {
 				*/
 			}
 
+			void testGpsAuton() {
+				cm->dvt.PIDGps(0.6096);
+			}
+
 			void aadiAuton() {
 				cm->mogoMech.actuate(true);
                 cm->dvt.moveSingleVelocity(1);
@@ -1695,9 +1780,8 @@ namespace hyper {
 				//testIMUAuton();
 				//linedAuton();
 				//aadiAuton();
-				advancedAuton();
-
-				cm->postAuton();
+				//advancedAuton();
+				testGpsAuton();
 			}
 	}; // class MatchAuton
 
@@ -1792,8 +1876,11 @@ namespace hyper {
 			/// @brief Skills preparation for opcontrol on the chassis
 			void skillsPrep() override {
 				// We need to run postAuton() first because these are what would prep for opcontrol normally
-				cm.postAuton();
 				cm.skillsPrep();
+			}
+
+			void postAuton() override {
+				cm.postAuton();
 			}
 	}; // class Chassis
 
@@ -1925,7 +2012,7 @@ hyper::AbstractChassis* currentChassis;
 
 void initDefaultChassis() {
 	static hyper::Chassis defaultChassis({
-		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT, ODOM_ENC_PORTS}, 
+		{{LEFT_DRIVE_PORTS, RIGHT_DRIVE_PORTS, IMU_PORT, ODOM_ENC_PORTS, GPS_SENSOR_PORT}, 
 		MOGO_MECH_PORT, DOINKER_PORT, CONVEYER_PORTS, LADY_BROWN_PORTS, MOGO_SENSOR_PORT}});
 	
 	currentChassis = &defaultChassis;
@@ -2016,6 +2103,10 @@ void preControl() {
 
 	if (DO_SKILLS_AUTON) {
 		currentChassis->skillsAuton();
+	}
+
+	if (DO_POST_AUTON) {
+		currentChassis->postAuton();
 	}
 }
 
